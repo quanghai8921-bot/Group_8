@@ -1,0 +1,176 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam style strictuml
+
+'==================== ENTITY CLASSES ====================
+
+class User {
+  - userId : String
+  - fullName : String
+  - birthDate : Date
+  - phoneNumber : String
+  - email : String
+  - password : String
+  - addressDelivery : String
+  - shopeeCoins : int
+  + login()
+  + logout()
+  + updateProfile()
+}
+
+class Merchant {
+  - merchantId : String
+  - fullName : String
+  - storeAddress : String
+  - openTime : Time
+  - closeTime : Time
+  - activeStatus : boolean
+  - shopType : String
+  - rating : int
+  + updateMenu()
+  + updateStatus()
+}
+
+class Category {
+  - categoryId : String
+  - name : String
+}
+
+class FoodItem {
+  - foodId : String
+  - foodName : String
+  - originalPrice : double
+  - salePrice : double
+  - foodImage : String
+  - description : String
+  - statusFood : String
+  + updatePrice()
+  + changeStatus()
+}
+
+class Cart {
+  - cartId : String
+  - createAt : Date
+  - subtotalPrice : double
+  + calculateTotal()
+}
+
+class CartItem {
+  - cartItemId : String
+  - quantity : int
+  - note : String
+  + updateQuantity()
+}
+
+class Order {
+  - orderId : String
+  - orderTime : Date
+  - pickupTime : Date
+  - deliveryTime : Date
+  - foodAmount : double
+  - shippingFee : double
+  - discountAmount : double
+  - status : int
+  - deliveryAddress : String
+  + placeOrder()
+  + cancelOrder()
+  + updateStatus()
+}
+
+class OrderDetail {
+  - orderDetailId : String
+  - quantity : int
+  - unitPrice : double
+  - note : String
+  + calculatePrice()
+}
+
+class Payment {
+  - paymentId : String
+  - amount : double
+  - paymentMethod : String
+  - paymentDate : Date
+  - status : String
+  + processPayment()
+}
+
+class Driver {
+  - driverId : String
+  - fullName : String
+  - birthDate : Date
+  - phoneNumber : String
+  - licensePlate : String
+  + acceptOrder()
+  + updateLocation()
+}
+
+class DriverLocation {
+  - latitude : double
+  - longitude : double
+  - updatedAt : Date
+}
+
+class Voucher {
+  - voucherId : int
+  - voucherCode : String
+  - voucherType : String
+  - discountValue : double
+  - minOrderValue : double
+  - maxUsage : int
+  - startDate : Date
+  - endDate : Date
+  + isValid()
+}
+
+class Review {
+  - reviewId : String
+  - rating : int
+  - comment : String
+  - createdAt : Date
+}
+
+'==================== SERVICE CLASSES ====================
+
+class OrderService <<service>> {
+  + createOrder()
+  + cancelOrder()
+  + assignDriver()
+}
+
+class PaymentService <<service>> {
+  + processPayment()
+}
+
+class AuthService <<service>> {
+  + login()
+  + register()
+}
+
+'==================== RELATIONSHIPS ====================
+
+User "1" -- "1" Cart
+Cart "1" -- "*" CartItem
+CartItem "*" -- "1" FoodItem
+
+User "1" -- "*" Order
+Order "1" -- "*" OrderDetail
+OrderDetail "*" -- "1" FoodItem
+
+Order "1" -- "1" Payment
+Order "*" -- "1" Driver
+Driver "1" -- "1" DriverLocation
+Order "0..1" -- "1" Voucher
+
+Merchant "1" -- "*" Category
+Category "1" -- "*" FoodItem
+Merchant "1" -- "*" Order
+
+User "1" -- "*" Review
+Order "1" -- "1" Review
+Merchant "1" -- "*" Review
+
+OrderService ..> Order
+PaymentService ..> Payment
+AuthService ..> User
+
+@enduml
