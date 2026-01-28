@@ -1,0 +1,35 @@
+package com.group8.backend.dto;
+
+import lombok.*;
+import jakarta.validation.constraints.*;
+
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor
+public class UserRegistrationDTO {
+    @NotBlank(message = "User ID cannot be blank")
+    private String userId;
+
+    @NotBlank(message = "Full name cannot be blank")
+    @Size(min = 2, max = 50, message = "Full name must be between 2 and 50 characters")
+    private String fullName;
+
+    @NotBlank(message = "Birth date cannot be blank")
+    @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}", message = "Birth date must be in yyyy-MM-dd format")
+    private String birthDate;
+
+    @NotBlank(message = "Phone number cannot be blank")
+    @Size(min = 10, max = 10, message = "Phone number must be exactly 10 digits")
+    private String phoneNumber;
+
+    @NotBlank(message = "Email cannot be blank")
+    @Email(message = "Email should be valid")
+    private String email;
+
+    @NotBlank(message = "Password cannot be blank")
+    @Size(min = 6, max = 30, message = "Password must be between 6 and 30 characters")
+    private String passwords;
+
+    @NotBlank(message = "Address cannot be blank")
+    @Size(min = 5, max = 100, message = "Address must be between 5 and 100 characters")
+    private String addressDelivery;
+}

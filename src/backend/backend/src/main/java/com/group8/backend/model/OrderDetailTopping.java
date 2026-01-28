@@ -14,6 +14,11 @@ public class OrderDetailTopping {
     private String odToppingId;
 
     @ManyToOne
+@JoinColumn(name = "option_topping_id")
+private OptionTopping optionTopping;
+
+    
+    @ManyToOne
     @JoinColumn(name = "Order_Detail_ID", nullable = false)
     private OrderDetail orderDetail;
 
