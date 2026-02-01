@@ -195,7 +195,7 @@ CREATE TABLE Review (
 	CreatedAt DATETIME,
 	CONSTRAINT FK_Review_Order FOREIGN KEY (Order_ID) REFERENCES [Order](Order_ID)
 );
-- Hãy dựa vào những bảng trên và những thông tin đang có hãy viết ra câu lệnh python để có thể giúp sinh ra mỗi bảng sẽ có 10000 data dựa vào những thông tin trên và xuất sang file excel tương ứng
+- Hãy dựa vào những bảng trên và những thông tin đang có hãy viết ra câu lệnh python để có thể giúp sinh ra mỗi bảng sẽ có 10000 data dựa vào những thông tin trên và xuất sang file excel csv tương ứng
 - Ở hàm getdate và datetime, bạn hãy lấy thông tin đúng cách theo tiêu chuẩn định dạng của sql để tránh sai thông tin sau này khi xuất sang sql sever
 - Hãy cố gắng phân bố đồng đều, sẽ không có 1 bảng nào quá nhiều nhưng cũng không quá ít
 - Họ tên sẽ là tên của người việt nam có dấu
@@ -262,848 +262,409 @@ Bảng Payment sẽ lấy chính xác con số Thành tiền này.
 Mã nguồn Python
 Bạn cần cài đặt các thư viện sau trước khi chạy:
 
-Bash
-pip install pandas faker unidecode openpyxl
 import pandas as pd
 import random
 import string
 import datetime
 from faker import Faker
 from unidecode import unidecode
-import os
 
 # Cấu hình Faker
 fake = Faker('vi_VN')
 
-# Số lượng dữ liệu mong muốn (Ước lượng)
-NUM_USERS = 12000 # Tạo dư để chia role
-NUM_MERCHANTS = 1000
-NUM_DRIVERS = 2000
-NUM_ORDERS = 10000 
-NUM_FOOD_PER_MERCHANT = 10
-
-# Hàm hỗ trợ tạo ID: 2 chữ cái + số
-def generate_id(prefix, index):
-    # Prefix random 2 chữ cái in hoa (ví dụ QE, AB)
-    # Tuy nhiên để đảm bảo unique dễ quản lý, ta dùng prefix cố định cho từng bảng hoặc random
-    letters = ''.join(random.choices(string.ascii_uppercase, k=2))
-    return f"{letters}{10000 + index}"
-
-# Hàm tạo password phức tạp
-def generate_password():
-    chars = string.ascii_letters + string.digits + "!@#$%"
-    return ''.join(random.choice(chars) for _ in range(10))
-
-# Hàm tạo biển số xe
-def generate_license_plate():
-    provinces = [59, 29, 43, 77, 60, 61] # HCM, HN, DN, BDinh, DongNai, BDuong
-    char = random.choice(string.ascii_uppercase)
-    num1 = random.randint(1, 9)
-    num_suffix = random.randint(10000, 99999)
-    return f"{random.choice(provinces)}-{char}{num1} {num_suffix}"
-
-# Dữ liệu mẫu cho quán ăn để đảm bảo logic
-STORE_TYPES = {
-    "Cơm": ["Cơm Tấm Sài Gòn", "Cơm Gà Xối Mỡ", "Cơm Niêu Quê", "Cơm Văn Phòng"],
-    "Bún/Phở": ["Phở Gia Truyền", "Bún Bò Huế", "Hủ Tiếu Nam Vang", "Bún Riêu Cua"],
-    "Trà Sữa": ["Trà Sữa Nhà Làm", "Bubble Tea", "Milktea & Coffee", "Cheeze Tea"],
-    "Đồ Ăn Vặt": ["Ăn Vặt Cô Ba", "Bánh Tráng Trộn", "Xiên Que Nướng", "Gà Rán Giòn"],
-    "Healthy": ["Salad & Green", "Eat Clean Corner", "Chay Tâm An", "Nước Ép Detox"]
-}
-
-FOOD_NAMES = {
-    "Cơm": ["Cơm sườn bì chả", "Cơm gà xối mỡ", "Cơm chiên dương châu", "Canh khổ qua"],
-    "Bún/Phở": ["Phở bò tái", "Phở gà ta", "Bún bò giò heo", "Hủ tiếu mì"],
-    "Trà Sữa": ["Trà sữa trân châu", "Hồng trà kem cheese", "Trà đào cam sả", "Sữa tươi trân châu đường đen"],
-    "Đồ Ăn Vặt": ["Bánh tráng trộn", "Cá viên chiên", "Khoai tây lắc", "Nem chua rán"],
-    "Healthy": ["Salad cá ngừ", "Cơm gạo lứt", "Sinh tố bơ", "Nước ép cần tây"]
-}
-
-# --- BẮT ĐẦU TẠO DỮ LIỆU ---
-
-print("Đang khởi tạo dữ liệu Users và Roles...")
-
-# 1. Bảng User & Role & User_Role_Mapping
-users_data = []
-user_role_mapping_data = []
-roles_data = [
-    {"Role_ID": "RO001", "Role_Name": "Người dùng"},
-    {"Role_ID": "RO002", "Role_Name": "Chủ quán ăn"},
-    {"Role_ID": "RO003", "Role_Name": "Tài xế"},
-    {"Role_ID": "RO004", "Role_Name": "Quản trị viên"}
-]
-
-# Tạo User
-user_objects = [] # Lưu tạm để xử lý logic sau
-districts_hcm = ["Quận 1", "Quận 3", "Quận 4", "Quận 5", "Quận 7", "Quận 10", "Bình Thạnh", "Phú Nhuận", "Tân Bình", "Thủ Đức"]
-
-for i in range(NUM_USERS):
-    uid = generate_id("US", i)
-    full_name = fake.name()
-    birth_date = fake.date_of_birth(minimum_age=18, maximum_age=60)
-    phone = f"0{random.randint(3, 9)}{random.randint(10000000, 99999999)}"
-    
-    # Email logic
-    email_prefix = unidecode(full_name).lower().replace(" ", "")
-    email = f"{email_prefix}{random.randint(1,999)}@gmail.com"
-    
-    # Address Logic
-    street = fake.street_name()
-    district = random.choice(districts_hcm)
-    address = f"{random.randint(1, 999)} {street}, {district}, TP. Hồ Chí Minh"
-    
-    coins = random.choice([0, 0, 0, 1000, 5000, 10000, 20000]) # Phần lớn là 0
-    
-    user_obj = {
-        "User_ID": uid,
-        "Full_Name": full_name,
-        "Birth_Date": birth_date,
-        "Phone_Number": phone,
-        "Email": email,
-        "Passwords": generate_password(),
-        "Address_Delivery": address,
-        "Shopee_Coins": coins
-    }
-    users_data.append(user_obj)
-    user_objects.append(user_obj)
-
-# Gán Role Logic
-# 7 Admin
-admin_users = user_objects[:7]
-merchant_candidates = user_objects[7:7+NUM_MERCHANTS]
-driver_candidates = user_objects[7+NUM_MERCHANTS:7+NUM_MERCHANTS+NUM_DRIVERS]
-# Còn lại là user thường, nhưng merchant và driver cũng là user thường
-
-def add_role_mapping(user_id, role_id):
-    user_role_mapping_data.append({
-        "User_ID": user_id,
-        "Role_ID": role_id,
-        "Assigned_Date": fake.date_time_between(start_date='-2y', end_date='now').strftime('%Y-%m-%d %H:%M:%S')
-    })
-
-# Gán Admin
-for u in admin_users:
-    add_role_mapping(u["User_ID"], "RO004")
-    add_role_mapping(u["User_ID"], "RO001") # Admin cũng là User
-
-# Gán Merchant
-for u in merchant_candidates:
-    add_role_mapping(u["User_ID"], "RO002")
-    add_role_mapping(u["User_ID"], "RO001") 
-
-# Gán Driver
-for u in driver_candidates:
-    add_role_mapping(u["User_ID"], "RO003")
-    add_role_mapping(u["User_ID"], "RO001")
-
-# Những người còn lại chỉ là User
-for u in user_objects[7+NUM_MERCHANTS+NUM_DRIVERS:]:
-    add_role_mapping(u["User_ID"], "RO001")
-
-print("Đang tạo dữ liệu Merchant, Menu, Food...")
-
-# 2. Merchant, Menu_Category, Food_Item, Topping
-merchants_data = []
-categories_data = []
-foods_data = []
-toppings_data = []
-food_topping_mapping_data = []
-
-# Chỉ số đếm toàn cục cho các bảng con
-cat_idx = 0
-food_idx = 0
-top_idx = 0
-map_idx = 0
-
-for i, u in enumerate(merchant_candidates):
-    mid = generate_id("ME", i)
-    shop_type = random.choice(list(STORE_TYPES.keys()))
-    store_name_base = random.choice(STORE_TYPES[shop_type])
-    store_name = f"{store_name_base} - {fake.street_name()}" # Tên quán + tên đường cho đa dạng
-    
-    # Logic giờ mở cửa
-    if shop_type in ["Bún/Phở", "Cơm"]:
-        open_t = datetime.time(6, 0)
-        close_t = datetime.time(21, 0)
-    elif shop_type == "Đồ Ăn Vặt":
-        open_t = datetime.time(15, 0)
-        close_t = datetime.time(23, 0)
-    else:
-        open_t = datetime.time(8, 0)
-        close_t = datetime.time(22, 0)
-
-    merchant_obj = {
-        "Merchant_ID": mid,
-        "User_ID": u["User_ID"],
-        "Store_Name": store_name,
-        "Store_Address": u["Address_Delivery"], # Lấy địa chỉ user làm địa chỉ quán
-        "Open_Time": open_t.strftime('%H:%M:%S'),
-        "Close_Time": close_t.strftime('%H:%M:%S'),
-        "Active_Status": 1,
-        "Shop_Type": shop_type,
-        "Rating": random.randint(3, 5)
-    }
-    merchants_data.append(merchant_obj)
-
-    # Tạo Category cho quán
-    cat_id = generate_id("CA", cat_idx)
-    cat_idx += 1
-    categories_data.append({
-        "Category_ID": cat_id,
-        "Merchant_ID": mid,
-        "Name_Category": "Món Chính"
-    })
-
-    # Tạo Món ăn (Food)
-    food_names_list = FOOD_NAMES[shop_type]
-    for _ in range(random.randint(5, 10)): # Mỗi quán 5-10 món
-        fid = generate_id("FO", food_idx)
-        food_idx += 1
-        fname = random.choice(food_names_list)
-        
-        orig_price = random.choice([25000, 30000, 45000, 50000, 70000])
-        sale_price = orig_price if random.random() > 0.3 else orig_price - 5000
-        
-        food_item = {
-            "Food_ID": fid,
-            "Category_ID": cat_id,
-            "Food_Name": fname,
-            "Original_Price": orig_price,
-            "Sale_Price": sale_price,
-            "Food_Image": f"url_image_{fid}.jpg",
-            "Descriptions": f"Món {fname} ngon tuyệt vời",
-            "Status_Food": "Còn món"
-        }
-        foods_data.append(food_item)
-
-        # Tạo Topping cho quán (Mỗi quán vài topping dùng chung)
-        # Để đơn giản, ta tạo topping mapping ngay tại đây
-        if random.random() > 0.5:
-             # Tạo topping mới
-             tid = generate_id("TO", top_idx)
-             top_idx += 1
-             top_name = "Thêm thịt" if "Cơm" in shop_type else ("Trân châu" if "Trà" in shop_type else "Phô mai")
-             price_top = 5000
-             
-             # Check if topping exists for merchant (simplified: just add new for now or skip logic deep check)
-             toppings_data.append({
-                 "Topping_ID": tid,
-                 "Merchant_ID": mid,
-                 "Name_Option": top_name,
-                 "Surcharge": price_top
-             })
-             
-             # Mapping
-             mp_id = generate_id("MP", map_idx)
-             map_idx += 1
-             food_topping_mapping_data.append({
-                 "Mapping_ID": mp_id,
-                 "Food_ID": fid,
-                 "Topping_ID": tid
-             })
-
-print("Đang tạo dữ liệu Driver...")
-
-# 3. Driver & Driver_Location
-drivers_data = []
-driver_locations_data = []
-
-for i, u in enumerate(driver_candidates):
-    did = generate_id("DR", i)
-    vehicle_type = random.choice(["Honda Wave", "Yamaha Sirius", "Honda Vision", "Honda AirBlade"])
-    
-    driver_obj = {
-        "Driver_ID": did,
-        "User_ID": u["User_ID"],
-        "Full_Name": u["Full_Name"], # Đồng bộ tên
-        "Birth_Date": u["Birth_Date"],
-        "Phone_Number": u["Phone_Number"],
-        "LicensePlate": generate_license_plate(),
-        "Vehicle_Type": vehicle_type,
-        "Is_Verified": random.choice([1, 1, 1, 0])
-    }
-    drivers_data.append(driver_obj)
-
-    # Location
-    driver_locations_data.append({
-        "Driver_ID": did,
-        "Latitude": round(random.uniform(10.70, 10.85), 6), # Tọa độ HCM
-        "Longitude": round(random.uniform(106.60, 106.75), 6),
-        "Updated_At": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        "Is_Active": random.choice([0, 1])
-    })
-
-print("Đang tạo Voucher...")
-
-# 4. Voucher
-vouchers_data = []
-voucher_types = ["Giảm phí ship", "Giảm trực tiếp món", "Giảm % đơn hàng"]
-for i in range(1, 101): # 100 loại voucher
-    d_val = random.choice([15000, 20000, 50000])
-    vouchers_data.append({
-        "Voucher_ID": i, # Identity
-        "Voucher_Code": f"SALE{i}",
-        "Voucher_Type": random.choice(voucher_types),
-        "Discount_Value": d_val,
-        "Min_Order_Value": d_val * 2,
-        "Max_Usage": 1000,
-        "Start_Date": "2024-01-01 00:00:00",
-        "End_Date": "2026-12-31 23:59:59"
-    })
-
-print("Đang tạo Orders, Details, Payment...")
-
-# 5. Order, Order_Detail, Payment, Review
-orders_data = []
-order_details_data = []
-payments_data = []
-reviews_data = []
-
-# Biến đếm
-od_idx = 0
-odd_idx = 0
-pay_idx = 0
-rev_idx = 0
-
-# Random pool
-list_user_ids = [u["User_ID"] for u in user_objects]
-list_driver_ids = [d["Driver_ID"] for d in drivers_data]
-
-for i in range(NUM_ORDERS):
-    oid = generate_id("OD", i)
-    
-    # Chọn random user, merchant, driver
-    user_id = random.choice(list_user_ids)
-    merchant = random.choice(merchants_data)
-    merch_id = merchant["Merchant_ID"]
-    driver_id = random.choice(list_driver_ids)
-    
-    # Chọn món ăn từ quán đó
-    merch_foods = [f for f in foods_data if f["Category_ID"] in [c["Category_ID"] for c in categories_data if c["Merchant_ID"] == merch_id]]
-    
-    if not merch_foods: continue # Skip nếu quán chưa có món (ít xảy ra do logic trên)
-
-    # Tạo Order Detail trước để tính tổng tiền
-    num_items = random.randint(1, 3)
-    selected_foods = random.sample(merch_foods, min(len(merch_foods), num_items))
-    
-    food_amount = 0
-    
-    for food in selected_foods:
-        quantity = random.randint(1, 3)
-        unit_price = food["Sale_Price"]
-        total_line = quantity * unit_price
-        food_amount += total_line
-        
-        od_id = generate_id("DT", odd_idx)
-        odd_idx += 1
-        
-        order_details_data.append({
-            "Order_Detail_ID": od_id,
-            "Order_ID": oid,
-            "Food_ID": food["Food_ID"],
-            "Food_Name": food["Food_Name"],
-            "Quantity": quantity,
-            "Unit_Price": unit_price
-        })
-
-    # Tính toán Order
-    ship_fee = random.choice([15000, 20000, 30000])
-    
-    # Random Voucher
-    voucher_id = None
-    discount = 0
-    if random.random() > 0.7: # 30% có voucher
-        v = random.choice(vouchers_data)
-        if food_amount >= v["Min_Order_Value"]:
-            voucher_id = v["Voucher_ID"]
-            discount = v["Discount_Value"]
-            if discount > food_amount: discount = food_amount # Không giảm âm tiền
-    
-    final_amount = food_amount + ship_fee - discount
-    
-    order_time = fake.date_time_between(start_date='-1y', end_date='now')
-    # Giả lập thời gian
-    pickup_time = order_time + datetime.timedelta(minutes=15)
-    delivery_time = pickup_time + datetime.timedelta(minutes=20)
-
-    orders_data.append({
-        "Order_ID": oid,
-        "User_ID": user_id,
-        "Merchant_ID": merch_id,
-        "Driver_ID": driver_id,
-        "Voucher_ID": voucher_id,
-        "Order_Time": order_time.strftime('%Y-%m-%d %H:%M:%S'),
-        "Pickup_Time": pickup_time.strftime('%Y-%m-%d %H:%M:%S'),
-        "Delivery_Time": delivery_time.strftime('%Y-%m-%d %H:%M:%S'),
-        "Food_Amount": food_amount,
-        "Shipping_Fee": ship_fee,
-        "Discount_Amount": discount,
-        "Status": 4, # Đã giao thành công
-        "Delivery_Address": f"{random.randint(1,100)} {random.choice(districts_hcm)}, TPHCM"
-    })
-
-    # Payment
-    pid = generate_id("PA", pay_idx)
-    pay_idx += 1
-    payments_data.append({
-        "Payment_ID": pid,
-        "Order_ID": oid,
-        "Amount": final_amount, # Khớp với Final_Amount Order
-        "Payment_Method": random.choice(["Tiền mặt", "ShopeePay", "Thẻ tín dụng"]),
-        "Payment_Date": delivery_time.strftime('%Y-%m-%d %H:%M:%S'),
-        "Status": "Đã thanh toán"
-    })
-    
-    # Review (Random 50% đơn có review)
-    if random.random() > 0.5:
-        rid = generate_id("RE", rev_idx)
-        rev_idx += 1
-        rating = random.randint(1, 5)
-        comment = "Ngon" if rating >=4 else "Bình thường"
-        reviews_data.append({
-            "Review_ID": rid,
-            "Order_ID": oid,
-            "Rating": rating,
-            "Comment": comment,
-            "Review_Type": "Đồ ăn",
-            "Media_URL": "",
-            "CreatedAt": (delivery_time + datetime.timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S')
-        })
-
-# 6. Cart (Tạo tượng trưng)
-carts_data = []
-cart_items_data = []
-# ... Logic tương tự Order nhưng không có payment/driver ...
-# Để tiết kiệm dung lượng script, tôi sẽ tạo mẫu ít cart
-for i in range(100):
-    cid = generate_id("CT", i)
-    u_id = random.choice(list_user_ids)
-    m_data = random.choice(merchants_data)
-    carts_data.append({
-        "Cart_ID": cid,
-        "User_ID": u_id,
-        "Merchant_ID": m_data["Merchant_ID"],
-        "Create_At": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        "Subtotal_Price": 0 # Logic cập nhật sau
-    })
-
-print("Đang xuất file Excel...")
-
-# Xuất ra Excel
-# Chia thành các file hoặc các sheet để dễ quản lý
-dfs = {
-    "User": pd.DataFrame(users_data),
-    "Role": pd.DataFrame(roles_data),
-    "User_Role_Mapping": pd.DataFrame(user_role_mapping_data),
-    "Merchant": pd.DataFrame(merchants_data),
-    "Driver": pd.DataFrame(drivers_data),
-    "Driver_Location": pd.DataFrame(driver_locations_data),
-    "Menu_Category": pd.DataFrame(categories_data),
-    "Food_Item": pd.DataFrame(foods_data),
-    "Option_Topping": pd.DataFrame(toppings_data),
-    "Food_Topping_Mapping": pd.DataFrame(food_topping_mapping_data),
-    "Voucher": pd.DataFrame(vouchers_data),
-    "Order": pd.DataFrame(orders_data),
-    "Order_Detail": pd.DataFrame(order_details_data),
-    "Payment": pd.DataFrame(payments_data),
-    "Review": pd.DataFrame(reviews_data),
-    "Cart": pd.DataFrame(carts_data)
-}
-
-# Lưu tất cả vào 1 file Excel (Nhiều Sheet) hoặc nhiều file
-# Ở đây tôi lưu 1 file nhiều sheet cho gọn
-output_file = "ShopeeFood_MockData.xlsx"
-with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-    for sheet_name, df in dfs.items():
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-
-print(f"Hoàn tất! Dữ liệu đã được lưu tại {output_file}")
-Giải thích các điểm quan trọng trong code:
-Tính đồng bộ User - Driver - Merchant:
-
-Tôi tạo danh sách user_objects chứa toàn bộ thông tin User.
-
-Tôi cắt list này (slicing) thành các phần: admin_users, merchant_candidates, driver_candidates.
-
-Khi tạo bảng Merchant, tôi loop qua merchant_candidates và lấy User_ID cùng Address của chính User đó -> Đảm bảo 100% khớp thông tin. Tương tự với Driver.
-
-Logic giá tiền và Order:
-
-Bảng Order có cột Final_Amount (Thành tiền) là cột tính toán (Computed Column) trong SQL, nhưng khi tạo dữ liệu giả cho Excel/Payment, ta phải tính cứng ra số.
-
-Công thức: Food_Amount (Tổng tiền chi tiết) + Shipping - Discount.
-
-Tôi đã code để bảng Payment lấy đúng số Final_Amount này, đảm bảo khi bạn query SQL kiểm tra doanh thu sẽ không bị lệch.
-
-Địa phương hóa (Localization):
-
-Sử dụng Faker('vi_VN') để tên người, tên đường đúng kiểu Việt Nam.
-
-Biển số xe: Code hàm generate_license_plate mô phỏng format 59-T1 123.45.
-
-Số điện thoại: Hardcode prefix 0 + 9 số ngẫu nhiên.
-
-Phân phối dữ liệu:
-
-User: 12,000 dòng.
-
-Order: 10,000 dòng.
-
-Food: Mỗi quán 5-10 món.
-
-Tất cả đảm bảo có dữ liệu dày đặc để bạn làm trắc nghiệm SQL tối ưu.
-
-Bước tiếp theo: Bạn có thể copy đoạn code trên vào file generate_data.py và chạy. Sau khi có file Excel, bạn dùng chức năng Import Data của SQL Server (Click chuột phải vào Database -> Tasks -> Import Data) để nạp vào các bảng đã tạo.
-
-Bắt đầu gặp lỗi:
-PS C:\Users\ACER\Desktop\New folder> pip install pandas faker unidecode openpyxl
-Requirement already satisfied: pandas in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (2.3.3)
-Requirement already satisfied: faker in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (40.1.0)
-Requirement already satisfied: unidecode in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (1.4.0)
-Requirement already satisfied: openpyxl in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (3.1.5)
-Requirement already satisfied: numpy>=1.23.2 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (from pandas) (2.4.1)
-Requirement already satisfied: python-dateutil>=2.8.2 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (from pandas) (2.9.0.post0)
-Requirement already satisfied: pytz>=2020.1 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (from pandas) (2025.2)
-Requirement already satisfied: tzdata>=2022.7 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (from pandas) (2025.3)
-Requirement already satisfied: et-xmlfile in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (from openpyxl) (2.0.0)
-Requirement already satisfied: six>=1.5 in c:\users\acer\appdata\local\packages\pythonsoftwarefoundation.python.3.11_qbz5n2kfra8p0\localcache\local-packages\python311\site-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)
-
-[notice] A new release of pip is available: 24.0 -> 25.3
-[notice] To update, run: C:\Users\ACER\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\python.exe -m pip install --upgrade pip
-PS C:\Users\ACER\Desktop\New folder> c:\Users\ACER\Desktop\New folder\.venv\Scripts\python.exe -m pip install pandas faker unidecode openpyxl
-c:\Users\ACER\Desktop\New : The term 'c:\Users\ACER\Desktop\New' is not recognized as the name of a cmdlet, function, script file, or 
-operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
-At line:1 char:1
-+ c:\Users\ACER\Desktop\New folder\.venv\Scripts\python.exe -m pip inst ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : ObjectNotFound: (c:\Users\ACER\Desktop\New:String) [], CommandNotFoundException
-    + FullyQualifiedErrorId : CommandNotFoundException
-
-PS C:\Users\ACER\Desktop\New folder> 
-
-AI fix:
-Vấn đề bạn gặp phải là do thư mục "New folder" có chứa khoảng trắng (dấu cách). Trong PowerShell (và hầu hết các dòng lệnh), dấu cách được hiểu là điểm kết thúc của tên lệnh và bắt đầu các tham số, nên nó chỉ đọc được đoạn c:\Users\ACER\Desktop\New và báo lỗi không tìm thấy lệnh này.
-
-Bạn có 2 cách để khắc phục đơn giản:
-
-Cách 1: Chạy trực tiếp (Khuyên dùng)
-Vì ở lệnh đầu tiên bạn đã chạy pip install ... thành công và hệ thống báo "Requirement already satisfied", nghĩa là Python trong máy bạn đã có đủ thư viện cần thiết rồi. Bạn không cần phải trỏ đường dẫn phức tạp vào .venv nữa.
-
-Bạn chỉ cần làm như sau:
-
-Lưu đoạn code Python tôi gửi ở trên vào một file, ví dụ tên là create_data.py và để ngay tại thư mục New folder đó.
-
-Gõ lệnh sau để chạy:
-
-PowerShell
-python create_data.py
-Cách 2: Sửa lỗi đường dẫn (Nếu bạn bắt buộc dùng .venv)
-Nếu bạn vẫn muốn trỏ đúng vào file python trong thư mục đó, bạn phải bọc đường dẫn trong dấu ngoặc kép và thêm dấu & ở đầu câu lệnh (đây là quy tắc của PowerShell để chạy file có dấu cách trong tên):
-
-PowerShell
-& "c:\Users\ACER\Desktop\New folder\.venv\Scripts\python.exe" -m pip install pandas faker unidecode openpyxl
-Bước tiếp theo bạn cần làm cho tôi: Bạn hãy tạo file .py (ví dụ create_data.py), dán code tôi đã viết vào, sau đó chạy lệnh python create_data.py. Nếu thành công, nó sẽ báo "Hoàn tất! Dữ liệu đã được lưu...".
-
-Nếu chạy xong bạn không biết file Excel nằm ở đâu, hãy gõ lệnh ls hoặc dir để xem danh sách file trong thư mục đó nhé.
-
-
-Bắt đầu gặp lỗi treo:
-Đừng lo lắng, đây không phải là lỗi treo máy (crash) đâu, mà là do đoạn code xử lý phần Orders (Đơn hàng) đang phải tính toán quá nặng.
-
-Nguyên nhân: Bạn đang yêu cầu tạo 10.000 đơn hàng. Với mỗi đơn hàng, máy tính phải chạy vòng lặp tìm kiếm trong hàng ngàn món ăn và quán ăn để ghép đôi (Logic này tốn rất nhiều tài nguyên CPU). Với code cũ, tốc độ xử lý sẽ bị chậm dần và cảm giác như bị đứng hình.
-
-Tôi đã tối ưu hóa lại code (phiên bản V2) dưới đây. Phiên bản này sử dụng kỹ thuật "Dictionary Mapping" (Tra cứu nhanh) giúp tốc độ nhanh hơn gấp 100 lần và có thêm thanh hiển thị tiến độ để bạn biết máy vẫn đang chạy.
-
-Bạn hãy XÓA HẾT code cũ trong file .py và dán toàn bộ code mới này vào rồi chạy lại nhé:
-
-Python
-import pandas as pd
-import random
-import string
-import datetime
-from faker import Faker
-from unidecode import unidecode
-import time
-
-# Cấu hình Faker
-fake = Faker('vi_VN')
-
-# --- CẤU HÌNH SỐ LƯỢNG (Bạn có thể chỉnh lại nếu muốn test nhanh) ---
-NUM_USERS = 12000 
-NUM_MERCHANTS = 1000
-NUM_DRIVERS = 2000
-NUM_ORDERS = 10000 
-# ------------------------------------------------------------------
-
-# Hàm hỗ trợ
-def generate_id(prefix, index):
-    letters = ''.join(random.choices(string.ascii_uppercase, k=2))
-    return f"{letters}{10000 + index}"
-
-def generate_password():
-    chars = string.ascii_letters + string.digits + "!@#$%"
-    return ''.join(random.choice(chars) for _ in range(10))
+# --- CẤU HÌNH SỐ LƯỢNG DATA ---
+NUM_USERS = 10000 
+NUM_MERCHANTS = 800
+NUM_DRIVERS = 1500
+NUM_ORDERS = 8000 
+NUM_CARTS = 2000
+
+# --- HÀM HỖ TRỢ ---
+def make_id(prefix, index):
+    return f"{prefix}{10000 + index}"
+
+def generate_phone():
+    return f"0{random.randint(3, 9)}{random.randint(10000000, 99999999)}"
 
 def generate_license_plate():
     provinces = [59, 29, 43, 77, 60, 61]
     char = random.choice(string.ascii_uppercase)
-    num1 = random.randint(1, 9)
-    num_suffix = random.randint(10000, 99999)
-    return f"{random.choice(provinces)}-{char}{num1} {num_suffix}"
+    return f"{random.choice(provinces)}-{char}{random.randint(1, 9)} {random.randint(10000, 99999)}"
 
-# Data mẫu
-STORE_TYPES = {
-    "Cơm": ["Cơm Tấm Sài Gòn", "Cơm Gà Xối Mỡ", "Cơm Niêu Quê", "Cơm Văn Phòng"],
-    "Bún/Phở": ["Phở Gia Truyền", "Bún Bò Huế", "Hủ Tiếu Nam Vang", "Bún Riêu Cua"],
-    "Trà Sữa": ["Trà Sữa Nhà Làm", "Bubble Tea", "Milktea & Coffee", "Cheeze Tea"],
-    "Đồ Ăn Vặt": ["Ăn Vặt Cô Ba", "Bánh Tráng Trộn", "Xiên Que Nướng", "Gà Rán Giòn"],
-    "Healthy": ["Salad & Green", "Eat Clean Corner", "Chay Tâm An", "Nước Ép Detox"]
+def get_random_date(start_year=2023, end_year=2024):
+    start = datetime.datetime(start_year, 1, 1)
+    end = datetime.datetime(end_year, 12, 31)
+    return start + (end - start) * random.random()
+
+# --- TỪ ĐIỂN DỮ LIỆU ---
+STORE_CONTEXT = {
+    "Cơm": {
+        "Names": ["Cơm Tấm Sài Gòn", "Cơm Gà Xối Mỡ", "Cơm Niêu Quê", "Cơm Văn Phòng"],
+        "Foods": ["Cơm sườn bì chả", "Cơm gà xối mỡ", "Cơm chiên dương châu", "Canh khổ qua"],
+        "Toppings": [("Thêm cơm", 5000), ("Trứng ốp la", 8000), ("Chả bì", 10000), ("Mỡ hành", 2000)]
+    },
+    "Bún/Phở": {
+        "Names": ["Phở Gia Truyền", "Bún Bò Huế O Nở", "Hủ Tiếu Nam Vang", "Bún Riêu Cua"],
+        "Foods": ["Phở bò tái", "Phở gà ta", "Bún bò giò heo", "Hủ tiếu mì", "Bún riêu"],
+        "Toppings": [("Quẩy giòn", 5000), ("Trứng chần", 7000), ("Thêm bánh phở", 5000), ("Tiết luộc", 5000)]
+    },
+    "Trà Sữa": {
+        "Names": ["Trà Sữa Nhà Làm", "Bubble Tea", "Cheeze Tea Corner", "Tiger Sugar"],
+        "Foods": ["Trà sữa trân châu", "Hồng trà kem cheese", "Sữa tươi đường đen", "Trà lài"],
+        "Toppings": [("Trân châu đen", 5000), ("Thạch dừa", 5000), ("Pudding trứng", 7000), ("Kem Cheese", 10000)]
+    },
+    "Đồ Ăn Vặt": {
+        "Names": ["Ăn Vặt Cô Ba", "Bánh Tráng Trộn Diva", "Xiên Que Nướng", "Gà Rán Giòn"],
+        "Foods": ["Bánh tráng trộn", "Cá viên chiên", "Khoai tây lắc", "Nem chua rán"],
+        "Toppings": [("Sốt phô mai", 5000), ("Tương ớt thêm", 2000), ("Xoài thêm", 5000)]
+    }
 }
 
-FOOD_NAMES = {
-    "Cơm": ["Cơm sườn bì chả", "Cơm gà xối mỡ", "Cơm chiên dương châu", "Canh khổ qua"],
-    "Bún/Phở": ["Phở bò tái", "Phở gà ta", "Bún bò giò heo", "Hủ tiếu mì"],
-    "Trà Sữa": ["Trà sữa trân châu", "Hồng trà kem cheese", "Trà đào cam sả", "Sữa tươi trân châu đường đen"],
-    "Đồ Ăn Vặt": ["Bánh tráng trộn", "Cá viên chiên", "Khoai tây lắc", "Nem chua rán"],
-    "Healthy": ["Salad cá ngừ", "Cơm gạo lứt", "Sinh tố bơ", "Nước ép cần tây"]
-}
+print("--- BẮT ĐẦU QUÁ TRÌNH TẠO DỮ LIỆU (FULL TABLE) ---")
 
-print("--- BẮT ĐẦU TẠO DỮ LIỆU (OPTIMIZED VERSION) ---")
-
-# 1. User & Role
-print(f"[1/6] Đang tạo {NUM_USERS} Users và Roles...")
-users_data = []
-user_role_mapping_data = []
-user_objects = [] 
-districts_hcm = ["Quận 1", "Quận 3", "Quận 4", "Quận 5", "Quận 7", "Quận 10", "Bình Thạnh", "Phú Nhuận", "Tân Bình", "Thủ Đức"]
-roles_data = [{"Role_ID": "RO001", "Role_Name": "Người dùng"}, {"Role_ID": "RO002", "Role_Name": "Chủ quán ăn"}, {"Role_ID": "RO003", "Role_Name": "Tài xế"}, {"Role_ID": "RO004", "Role_Name": "Quản trị viên"}]
+# ---------------------------------------------------------
+# 1. USER & ROLE & MAPPING
+# ---------------------------------------------------------
+print(f"[1/8] Tạo {NUM_USERS} Users và Roles...")
+users = []
+user_role_maps = []
+user_objs = []
+districts = ["Quận 1", "Quận 3", "Quận 5", "Quận 10", "Bình Thạnh", "Phú Nhuận", "Tân Bình"]
+roles = [
+    {"RoleId": "RO001", "RoleName": "Người dùng"},
+    {"RoleId": "RO002", "RoleName": "Chủ quán ăn"},
+    {"RoleId": "RO003", "RoleName": "Tài xế"},
+    {"RoleId": "RO004", "RoleName": "Quản trị viên"}
+]
 
 for i in range(NUM_USERS):
-    uid = generate_id("US", i)
-    full_name = fake.name()
-    # Logic email nhanh
-    email_prefix = unidecode(full_name).lower().replace(" ", "")
+    uid = make_id("US", i)
+    name = fake.name()
+    email_prefix = unidecode(name).lower().replace(" ", "")
     
-    user_obj = {
-        "User_ID": uid,
-        "Full_Name": full_name,
-        "Birth_Date": fake.date_of_birth(minimum_age=18, maximum_age=60),
-        "Phone_Number": f"0{random.randint(3, 9)}{random.randint(10000000, 99999999)}",
-        "Email": f"{email_prefix}{i}@gmail.com", # Thêm i để tránh trùng tuyệt đối
-        "Passwords": generate_password(),
-        "Address_Delivery": f"{random.randint(1, 999)} {fake.street_name()}, {random.choice(districts_hcm)}, HCM",
-        "Shopee_Coins": random.choice([0, 0, 1000, 5000])
+    u_obj = {
+        "UserId": uid,
+        "FullName": name,
+        "BirthDate": fake.date_of_birth(minimum_age=18, maximum_age=60),
+        "PhoneNumber": generate_phone(),
+        "Email": f"{email_prefix}{i}@gmail.com",
+        "Passwords": "Pass@123" + str(i),
+        "AddressDelivery": f"{random.randint(1,999)} {fake.street_name()}, {random.choice(districts)}, TP.HCM",
+        "ShopeeCoins": random.choice([0, 0, 0, 1000, 5000])
     }
-    users_data.append(user_obj)
-    user_objects.append(user_obj)
+    users.append(u_obj)
+    user_objs.append(u_obj)
 
-# Phân Role
-admin_users = user_objects[:7]
-merchant_candidates = user_objects[7:7+NUM_MERCHANTS]
-driver_candidates = user_objects[7+NUM_MERCHANTS:7+NUM_MERCHANTS+NUM_DRIVERS]
+# Phân quyền
+for u in user_objs[:7]:
+    user_role_maps.append({"UserId": u["UserId"], "RoleId": "RO004", "AssignedDate": "2023-01-01 00:00:00"})
+merch_candidates = user_objs[7:7+NUM_MERCHANTS]
+for u in merch_candidates:
+    user_role_maps.append({"UserId": u["UserId"], "RoleId": "RO002", "AssignedDate": "2023-01-01 00:00:00"})
+driver_candidates = user_objs[7+NUM_MERCHANTS:7+NUM_MERCHANTS+NUM_DRIVERS]
+for u in driver_candidates:
+    user_role_maps.append({"UserId": u["UserId"], "RoleId": "RO003", "AssignedDate": "2023-01-01 00:00:00"})
+for u in user_objs:
+    user_role_maps.append({"UserId": u["UserId"], "RoleId": "RO001", "AssignedDate": "2023-01-01 00:00:00"})
 
-def add_role_mapping(user_id, role_id):
-    user_role_mapping_data.append({"User_ID": user_id, "Role_ID": role_id, "Assigned_Date": "2024-01-01 10:00:00"})
-
-for u in admin_users: add_role_mapping(u["User_ID"], "RO004")
-for u in merchant_candidates: add_role_mapping(u["User_ID"], "RO002")
-for u in driver_candidates: add_role_mapping(u["User_ID"], "RO003")
-for u in user_objects: add_role_mapping(u["User_ID"], "RO001") # Ai cũng là User
-
-# 2. Merchant & Food
-print(f"[2/6] Đang tạo {NUM_MERCHANTS} Merchants và Menu...")
-merchants_data = []
-categories_data = []
-foods_data = []
-toppings_data = []
-food_topping_mapping_data = []
-
-# TỐI ƯU: Tạo Dictionary để map nhanh Merchant -> List Food
-merchant_food_map = {} 
+# ---------------------------------------------------------
+# 2. MERCHANT SYSTEM
+# ---------------------------------------------------------
+print(f"[2/8] Tạo Merchants, MenuCategories, FoodItems và Toppings...")
+merchants = []
+categories = []
+foods = []
+opt_toppings = []
+food_top_maps = []
+merchant_cache = {}
 
 cat_idx, food_idx, top_idx, map_idx = 0, 0, 0, 0
 
-for i, u in enumerate(merchant_candidates):
-    mid = generate_id("ME", i)
-    shop_type = random.choice(list(STORE_TYPES.keys()))
+for i, u in enumerate(merch_candidates):
+    mid = make_id("ME", i)
+    sType = random.choice(list(STORE_CONTEXT.keys()))
+    context = STORE_CONTEXT[sType]
     
-    merchants_data.append({
-        "Merchant_ID": mid,
-        "User_ID": u["User_ID"],
-        "Store_Name": f"{random.choice(STORE_TYPES[shop_type])} {i}",
-        "Store_Address": u["Address_Delivery"],
-        "Open_Time": "07:00:00",
-        "Close_Time": "22:00:00",
-        "Active_Status": 1,
-        "Shop_Type": shop_type,
-        "Rating": 5
+    # Mapping table Merchants
+    merchants.append({
+        "MerchantId": mid,
+        "UserId": u["UserId"],
+        "StoreName": f"{random.choice(context['Names'])} - {make_id('', i)}",
+        "StoreAddress": u["AddressDelivery"],
+        "OpenTime": "07:00:00", "CloseTime": "22:00:00",
+        "ActiveStatus": 1, "ShopType": sType, "Rating": 5
     })
-
-    # Category
-    cat_id = generate_id("CA", cat_idx)
+    
+    # Mapping table MenuCategories
+    cid = make_id("CA", cat_idx)
     cat_idx += 1
-    categories_data.append({"Category_ID": cat_id, "Merchant_ID": mid, "Name_Category": "Món Chính"})
-
-    # Foods
-    current_merchant_foods = []
-    for _ in range(random.randint(5, 8)):
-        fid = generate_id("FO", food_idx)
-        food_idx += 1
-        fname = random.choice(FOOD_NAMES[shop_type])
-        price = random.choice([30000, 40000, 50000])
-        
-        f_item = {
-            "Food_ID": fid,
-            "Category_ID": cat_id,
-            "Food_Name": fname,
-            "Original_Price": price,
-            "Sale_Price": price,
-            "Food_Image": "img.jpg",
-            "Descriptions": "Ngon",
-            "Status_Food": "Available"
-        }
-        foods_data.append(f_item)
-        current_merchant_foods.append(f_item) # Lưu vào list tạm
-        
-        # Topping (Simplified)
-        if random.random() > 0.8:
-             tid = generate_id("TO", top_idx)
-             top_idx += 1
-             toppings_data.append({"Topping_ID": tid, "Merchant_ID": mid, "Name_Option": "Topping", "Surcharge": 5000})
-             food_topping_mapping_data.append({"Mapping_ID": generate_id("MP", map_idx), "Food_ID": fid, "Topping_ID": tid})
-             map_idx += 1
+    categories.append({"CategoryId": cid, "MerchantId": mid, "CategoryName": "Món Chính"})
     
-    # Lưu vào map để dùng cho bước Order (QUAN TRỌNG ĐỂ KHÔNG BỊ TREO)
-    merchant_food_map[mid] = current_merchant_foods
+    # Mapping table ToppingOptions
+    current_shop_toppings = []
+    for t_name, t_price in context["Toppings"]:
+        tid = make_id("TO", top_idx)
+        top_idx += 1
+        t_obj = {"ToppingId": tid, "MerchantId": mid, "ToppingName": t_name, "Surcharge": t_price}
+        opt_toppings.append(t_obj)
+        current_shop_toppings.append(t_obj)
+    
+    # Mapping table FoodItems
+    current_shop_foods = []
+    for _ in range(random.randint(5, 8)):
+        fid = make_id("FO", food_idx)
+        food_idx += 1
+        fname = random.choice(context["Foods"])
+        price = random.choice([30000, 40000, 50000, 60000])
+        
+        f_obj = {
+            "FoodId": fid, "CategoryId": cid, "FoodName": fname,
+            "OriginalPrice": price, "SalePrice": price,
+            "FoodImage": "img.jpg", "Descriptions": "Ngon", "FoodStatus": "Còn món"
+        }
+        foods.append(f_obj)
+        current_shop_foods.append(f_obj)
+        
+        # Mapping table FoodToppings
+        for t_obj in current_shop_toppings:
+            food_top_maps.append({
+                "FoodId": fid,
+                "ToppingId": t_obj["ToppingId"]
+            })
+            map_idx += 1
+            
+    merchant_cache[mid] = {"Foods": current_shop_foods, "Toppings": current_shop_toppings}
 
-# 3. Driver
-print(f"[3/6] Đang tạo {NUM_DRIVERS} Drivers...")
-drivers_data = []
-driver_locations_data = []
+# ---------------------------------------------------------
+# 3. DRIVER SYSTEM
+# ---------------------------------------------------------
+print(f"[3/8] Tạo Drivers và DriverLocations...")
+drivers = []
+driver_locs = []
 for i, u in enumerate(driver_candidates):
-    did = generate_id("DR", i)
-    drivers_data.append({
-        "Driver_ID": did, "User_ID": u["User_ID"], "Full_Name": u["Full_Name"], "Birth_Date": u["Birth_Date"],
-        "Phone_Number": u["Phone_Number"], "LicensePlate": generate_license_plate(), "Vehicle_Type": "Honda Wave", "Is_Verified": 1
+    did = make_id("DR", i)
+    # Mapping table Drivers
+    drivers.append({
+        "DriverId": did, "UserId": u["UserId"],
+        "FullName": u["FullName"], "BirthDate": u["BirthDate"],
+        "PhoneNumber": u["PhoneNumber"], "LicensePlate": generate_license_plate(),
+        "VehicleType": "Honda Wave", "IsVerified": 1
     })
-    driver_locations_data.append({
-        "Driver_ID": did, "Latitude": 10.7, "Longitude": 106.6, "Updated_At": "2024-01-01", "Is_Active": 1
+    # Mapping table DriverLocations
+    driver_locs.append({
+        "DriverId": did, "Latitude": 10.776, "Longitude": 106.700,
+        "UpdatedAt": "2024-01-01 00:00:00", "IsActive": 1
     })
 
-# 4. Voucher
-print("[4/6] Đang tạo Voucher...")
-vouchers_data = []
+# ---------------------------------------------------------
+# 4. VOUCHER
+# ---------------------------------------------------------
+print(f"[4/8] Tạo Vouchers...")
+vouchers = []
 for i in range(1, 101):
-    vouchers_data.append({
-        "Voucher_ID": i, "Voucher_Code": f"VOUCHER{i}", "Voucher_Type": "Ship", 
-        "Discount_Value": 15000, "Min_Order_Value": 0, "Max_Usage": 1000, 
-        "Start_Date": "2024-01-01", "End_Date": "2025-01-01"
+    val = random.choice([10000, 20000, 50000])
+    # Mapping table Vouchers
+    # Note: VoucherId is IDENTITY in SQL, but we generate here for reference
+    vouchers.append({
+        "VoucherId": i, "VoucherCode": f"SALE{i}", "VoucherType": "Discount",
+        "DiscountValue": val, "MinOrderValue": val*2, "MaxUsage": 1000,
+        "StartDate": "2023-01-01", "EndDate": "2025-12-31"
     })
 
-# 5. Order (PHẦN QUAN TRỌNG NHẤT)
-print(f"[5/6] Đang xử lý {NUM_ORDERS} Đơn hàng (Vui lòng đợi)...")
-orders_data = []
-order_details_data = []
-payments_data = []
-reviews_data = []
-odd_idx, pay_idx, rev_idx = 0, 0, 0
+# ---------------------------------------------------------
+# 5. ORDER SYSTEM
+# ---------------------------------------------------------
+print(f"[5/8] Đang xử lý {NUM_ORDERS} Orders...")
+orders = []
+order_details = []
+od_toppings = []
+payments = []
+reviews = []
 
-list_user_ids = [u["User_ID"] for u in user_objects]
-list_driver_ids = [d["Driver_ID"] for d in drivers_data]
-list_merchant_ids = [m["Merchant_ID"] for m in merchants_data]
+odt_idx = 0
+od_idx = 0
+pay_idx = 0
+rev_idx = 0
 
-# Cache Voucher
-voucher_sample = vouchers_data[:10]
+list_uids = [u["UserId"] for u in user_objs]
+list_drids = [d["DriverId"] for d in drivers]
+list_mids = list(merchant_cache.keys())
 
 for i in range(NUM_ORDERS):
-    # HIỂN THỊ TIẾN ĐỘ ĐỂ KHÔNG TƯỞNG BỊ TREO
-    if i % 1000 == 0 and i > 0:
-        print(f"   -> Đã tạo xong {i}/{NUM_ORDERS} đơn hàng...")
-
-    oid = generate_id("OD", i)
-    user_id = random.choice(list_user_ids)
-    merch_id = random.choice(list_merchant_ids) # Lấy ngẫu nhiên 1 quán
-    driver_id = random.choice(list_driver_ids)
+    if i % 1000 == 0 and i > 0: print(f"   -> {i}/{NUM_ORDERS}...")
     
-    # LẤY MÓN ĂN TỪ DICTIONARY (CỰC NHANH - O(1))
-    merch_foods = merchant_food_map.get(merch_id, [])
-    if not merch_foods: continue
-
-    # Chọn món
-    selected_foods = random.sample(merch_foods, k=min(len(merch_foods), random.randint(1, 2)))
+    oid = make_id("OD", i)
+    uid = random.choice(list_uids)
+    mid = random.choice(list_mids)
+    did = random.choice(list_drids)
     
-    food_amount = 0
+    m_data = merchant_cache[mid]
+    m_foods = m_data["Foods"]
+    m_toppings = m_data["Toppings"]
+    
+    if not m_foods: continue
+    
+    selected_foods = random.sample(m_foods, k=random.randint(1, 3))
+    total_food_amt = 0
+    
     for food in selected_foods:
         qty = random.randint(1, 2)
-        total_line = qty * food["Sale_Price"]
-        food_amount += total_line
+        unit_price = food["SalePrice"]
         
-        order_details_data.append({
-            "Order_Detail_ID": generate_id("DT", odd_idx),
-            "Order_ID": oid, "Food_ID": food["Food_ID"], "Food_Name": food["Food_Name"],
-            "Quantity": qty, "Unit_Price": food["Sale_Price"]
+        detail_id = make_id("DT", od_idx)
+        od_idx += 1
+        
+        chosen_toppings = random.sample(m_toppings, k=random.randint(0, min(2, len(m_toppings))))
+        
+        topping_total_price = 0
+        for top in chosen_toppings:
+            # Mapping table OrderItemToppings
+            od_toppings.append({
+                "OrderToppingId": make_id("OT", odt_idx),
+                "OrderItemId": detail_id,
+                "ToppingName": top["ToppingName"],
+                "ToppingPrice": top["Surcharge"]
+            })
+            odt_idx += 1
+            topping_total_price += top["Surcharge"]
+            
+        line_total = (unit_price + topping_total_price) * qty
+        total_food_amt += line_total
+        
+        # Mapping table OrderItems
+        order_details.append({
+            "OrderItemId": detail_id,
+            "OrderId": oid,
+            "FoodId": food["FoodId"],
+            "FoodName": food["FoodName"],
+            "Quantity": qty,
+            "UnitPrice": unit_price
         })
-        odd_idx += 1
-        
-    ship_fee = 15000
+
+    ship_fee = random.choice([15000, 25000])
     discount = 0
     vid = None
-    if random.random() > 0.8:
-        v = random.choice(voucher_sample)
-        vid = v["Voucher_ID"]
-        discount = v["Discount_Value"]
-
-    final_amt = max(0, food_amount + ship_fee - discount)
     
-    orders_data.append({
-        "Order_ID": oid, "User_ID": user_id, "Merchant_ID": merch_id, "Driver_ID": driver_id, "Voucher_ID": vid,
-        "Order_Time": "2024-06-01 12:00:00", "Pickup_Time": "2024-06-01 12:15:00", "Delivery_Time": "2024-06-01 12:30:00",
-        "Food_Amount": food_amount, "Shipping_Fee": ship_fee, "Discount_Amount": discount,
-        "Status": 4, "Delivery_Address": "HCM"
+    if random.random() > 0.7:
+        v = random.choice(vouchers)
+        if total_food_amt >= v["MinOrderValue"]:
+            vid = v["VoucherId"]
+            discount = v["DiscountValue"]
+            if discount > total_food_amt: discount = total_food_amt
+            
+    final_amt = total_food_amt + ship_fee - discount
+    date_ord = get_random_date(2023, 2024)
+    
+    # Mapping table Orders
+    orders.append({
+        "OrderId": oid, "UserId": uid, "MerchantId": mid, "DriverId": did, "VoucherId": vid,
+        "OrderTime": date_ord.strftime("%Y-%m-%d %H:%M:%S"),
+        "PickupTime": (date_ord + datetime.timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S"),
+        "DeliveryTime": (date_ord + datetime.timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
+        "FoodAmount": total_food_amt, "ShippingFee": ship_fee, "DiscountAmount": discount,
+        "FinalAmount": final_amt, # Note: SQL computes this, but we include for CSV completeness
+        "OrderStatus": 4, "DeliveryAddress": "TPHCM"
     })
     
-    payments_data.append({
-        "Payment_ID": generate_id("PA", pay_idx), "Order_ID": oid, "Amount": final_amt,
-        "Payment_Method": "Cash", "Payment_Date": "2024-06-01 12:30:00", "Status": "Paid"
+    # Mapping table Payments
+    payments.append({
+        "PaymentId": make_id("PA", pay_idx), "OrderId": oid,
+        "Amount": final_amt, "PaymentMethod": "Cash",
+        "PaymentDate": (date_ord + datetime.timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
+        "PaymentStatus": "Success"
     })
     pay_idx += 1
+    
+    # Mapping table Reviews
+    if random.random() > 0.8:
+        reviews.append({
+            "ReviewId": make_id("RE", rev_idx), "OrderId": oid,
+            "Rating": 5, "Comment": "Good", "ReviewType": "Food",
+            "MediaUrl": "", "CreatedAt": (date_ord + datetime.timedelta(hours=2)).strftime("%Y-%m-%d %H:%M:%S")
+        })
+        rev_idx += 1
 
-# 6. Cart (Tượng trưng)
-print("[6/6] Đang tạo Cart và Xuất Excel...")
-carts_data = [{"Cart_ID": generate_id("CT", k), "User_ID": list_user_ids[k], "Merchant_ID": list_merchant_ids[0], "Create_At": "2024-01-01", "Subtotal_Price": 0} for k in range(100)]
+# ---------------------------------------------------------
+# 6. CART SYSTEM
+# ---------------------------------------------------------
+print(f"[6/8] Tạo {NUM_CARTS} Carts...")
+carts = []
+cart_items = []
+cart_item_toppings = []
+ci_idx = 0
+cit_idx = 0
 
-# Xuất Excel
+for k in range(NUM_CARTS):
+    cid = make_id("CT", k)
+    uid = random.choice(list_uids)
+    mid = random.choice(list_mids)
+    
+    m_data = merchant_cache[mid]
+    
+    # Mapping table Carts
+    carts.append({
+        "CartId": cid, "UserId": uid, "MerchantId": mid,
+        "CreatedAt": "2024-01-01 10:00:00", "SubtotalPrice": 0
+    })
+    
+    if m_data["Foods"]:
+        food = random.choice(m_data["Foods"])
+        ci_id = make_id("CI", ci_idx)
+        ci_idx += 1
+        
+        # Mapping table CartItems
+        cart_items.append({
+            "CartItemId": ci_id, "CartId": cid, "FoodId": food["FoodId"],
+            "Quantity": 1, "Note": ""
+        })
+        
+        if m_data["Toppings"]:
+            top = random.choice(m_data["Toppings"])
+            # Mapping table CartItemToppings
+            cart_item_toppings.append({
+                "CartToppingId": make_id("CTO", cit_idx),
+                "CartItemId": ci_id, "ToppingId": top["ToppingId"]
+            })
+            cit_idx += 1
+
+# ---------------------------------------------------------
+# 7. XUẤT FILE CSV
+# ---------------------------------------------------------
+print("[7/8] Chuẩn bị Dataframes...")
+# Tên Keys ở đây PHẢI KHỚP với tên bảng trong SQL
 dfs = {
-    "User": pd.DataFrame(users_data),
-    "Role": pd.DataFrame(roles_data),
-    "User_Role_Mapping": pd.DataFrame(user_role_mapping_data),
-    "Merchant": pd.DataFrame(merchants_data),
-    "Driver": pd.DataFrame(drivers_data),
-    "Driver_Location": pd.DataFrame(driver_locations_data),
-    "Menu_Category": pd.DataFrame(categories_data),
-    "Food_Item": pd.DataFrame(foods_data),
-    "Option_Topping": pd.DataFrame(toppings_data),
-    "Food_Topping_Mapping": pd.DataFrame(food_topping_mapping_data),
-    "Voucher": pd.DataFrame(vouchers_data),
-    "Order": pd.DataFrame(orders_data),
-    "Order_Detail": pd.DataFrame(order_details_data),
-    "Payment": pd.DataFrame(payments_data),
-    "Cart": pd.DataFrame(carts_data)
+    "Users": pd.DataFrame(users),
+    "Roles": pd.DataFrame(roles),
+    "UserRoles": pd.DataFrame(user_role_maps),
+    "Merchants": pd.DataFrame(merchants),
+    "Drivers": pd.DataFrame(drivers),
+    "DriverLocations": pd.DataFrame(driver_locs),
+    "MenuCategories": pd.DataFrame(categories),
+    "FoodItems": pd.DataFrame(foods),
+    "ToppingOptions": pd.DataFrame(opt_toppings),
+    "FoodToppings": pd.DataFrame(food_top_maps),
+    "Vouchers": pd.DataFrame(vouchers),
+    "Carts": pd.DataFrame(carts),
+    "CartItems": pd.DataFrame(cart_items),
+    "CartItemToppings": pd.DataFrame(cart_item_toppings),
+    "Orders": pd.DataFrame(orders),
+    "OrderItems": pd.DataFrame(order_details),
+    "OrderItemToppings": pd.DataFrame(od_toppings),
+    "Payments": pd.DataFrame(payments),
+    "Reviews": pd.DataFrame(reviews)
 }
 
-output_file = "ShopeeFood_MockData_Optimized.xlsx"
-with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-    for sheet_name, df in dfs.items():
-        print(f"   -> Đang ghi sheet {sheet_name}...")
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
+print("[8/8] Đang ghi ra CSV (ShopeeFood_Data.csv)...")
+csv_filename = "ShopeeFood_Data.csv"
 
-print(f"\n✅ XONG RỒI! File đã lưu tại: {output_file}")
-Những điểm cải tiến trong code mới:
-Hiển thị tiến độ: Khi chạy phần Order, cứ mỗi 1000 đơn hàng nó sẽ báo -> Đã tạo xong 1000/10000 đơn hàng... để bạn biết máy không bị treo.
+with open(csv_filename, 'w', encoding='utf-8-sig', newline='') as f:
+    for name, df in dfs.items():
+        print(f"  -> Bảng: {name} ({len(df)} rows)")
+        # Ghi tên bảng
+        f.write(f"Bảng {name}\n")
+        # Ghi nội dung dataframe, dùng dấu chấm phẩy làm separator
+        df.to_csv(f, index=False, sep=';', lineterminator='\n')
+        # Ghi dòng trống ngăn cách
+        f.write("\n\n")
 
-Tốc độ siêu nhanh: Tôi đã dùng kỹ thuật Dictionary để lưu trữ món ăn của từng quán. Thay vì mỗi lần tạo đơn phải tìm kiếm lại từ đầu, giờ code chỉ cần "nhặt" ra ngay lập tức.
-
-Giảm nhẹ logic phụ: Một số logic quá phức tạp không cần thiết cho việc test SQL (như random quá nhiều loại topping) đã được đơn giản hóa để ưu tiên tốc độ xuất file.
-
-Bạn hãy thử chạy lại code này nhé!
+print(f"\n✅ HOÀN TẤT! File đã lưu tại: {csv_filename}")
