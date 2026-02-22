@@ -47,31 +47,35 @@ export default function LoginPage() {
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!email || !password) {
+
+        if (email === "" || password === "") {
             setError("Vui lòng điền đầy đủ email và mật khẩu!");
             return;
         }
+
         setError("");
-        alert("Đăng nhập thành công! (demo)");
+        alert("Mật khẩu hoặc tài khoản không đúng");
     };
 
     const handleGoogleLogin = () => alert("Login Google (demo UI)");
     const handleFacebookLogin = () => alert("Login Facebook (demo UI)");
 
+    let errorMessageElement = null;
+    if (error !== "") {
+        errorMessageElement = (
+            <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
+        );
+    }
+
     return (
-
         <div className="flex items-center justify-center min-h-screen bg-[#FFD6E5] px-4">
-
             <div className="w-full max-w-md p-8 bg-white rounded-2xl shadow-lg">
                 <h2 className="text-2xl font-bold text-center mb-6 text-[#FF5722]">
                     Đăng Nhập
                 </h2>
 
-                {error && (
-                    <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
-                )}
+                {errorMessageElement}
 
-                {/* Email/Password */}
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div>
                         <Label htmlFor="email" className="text-gray-700">
@@ -109,14 +113,12 @@ export default function LoginPage() {
                     </Button>
                 </form>
 
-                {/* Divider */}
                 <div className="my-6 flex items-center gap-3">
                     <div className="h-px w-full bg-gray-200" />
                     <span className="text-xs text-gray-500">HOẶC</span>
                     <div className="h-px w-full bg-gray-200" />
                 </div>
 
-                {/* Social Login */}
                 <div className="flex flex-col gap-3">
                     <Button
                         type="button"

@@ -1,72 +1,89 @@
-"use client"; // Cần thiết vì có tương tác chọn tỉnh thành
+"use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"; // Đảm bảo bạn đã cài: npx shadcn@latest add select
+import { ShoppingCart, Search } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
-  const [province, setProvince] = useState("binhdinh");
+    const { totalItems } = useCart();
+    const router = useRouter();
 
-  return (
-    <nav className="flex items-center justify-between px-6 py-2 bg-white shadow-sm border-b">
-      <div className="flex items-center gap-8">
-        {/* Logo ShopeeFood */}
-        <Link href="/">
-          <img 
-            src="https://shopeefood.vn/app/assets/img/shopeefoodvn.png" 
-            alt="ShopeeFood Logo" 
-            className="h-10 w-auto"
-          />
-        </Link>
+    const handleCartClick = function (e: React.MouseEvent) {
+        const token = localStorage.getItem("auth-token");
 
-        {/* Mục chọn Tỉnh thành */}
-        <div className="hidden md:block">
-          <Select defaultValue={province} onValueChange={setProvince}>
-            <SelectTrigger className="w-[140px] bg-gray-100 border-none h-9 focus:ring-0">
-              <SelectValue placeholder="Chọn tỉnh" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="binhdinh">Bình Định</SelectItem>
-              <SelectItem value="hanoi">Hà Nội</SelectItem>
-              <SelectItem value="tphcm">TP. HCM</SelectItem>
-              <SelectItem value="danang">Đà Nẵng</SelectItem>
-              <SelectItem value="cantho">Cần Thơ</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        if (token === null) {
+            e.preventDefault();
+            router.push("/login");
+        }
+    };
 
-        {/* Menu Đồ ăn */}
-        <div className="hidden lg:block border-b-2 border-[#ee4d2d] pb-1 cursor-pointer transition-all">
-          <span className="font-bold text-[#ee4d2d]">Đồ ăn</span>
-        </div>
-      </div>
+    let cartBadge = null;
+    if (totalItems > 0) {
+        cartBadge = (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                {totalItems}
+            </span>
+        );
+    }
 
-      <div className="flex items-center gap-6">
-        <div className="p-2 cursor-pointer hover:bg-gray-100 rounded-full transition">
-          <Search size={22} className="text-gray-600" />
-        </div>
+    return (
+        <nav className="flex items-center justify-between p-4 bg-white shadow-md sticky top-0 z-50 gap-4">
+            {/* Logo */}
+            <Link href="/" className="flex-shrink-0">
+                <Image
+                    src="/Logo.jpg"
+                    alt="Logo ShopeeFood"
+                    width={150}
+                    height={40}
+                    priority
+                    className="object-contain"
+                />
+            </Link>
 
-        <div className="flex gap-3">
-          <Link href="/login">
-            <Button variant="outline" className="border-[#ee4d2d] text-[#ee4d2d] hover:bg-orange-50 font-medium px-6">
-              Đăng nhập
-            </Button>
-          </Link>
-          <Link href="/register">
-            <Button className="bg-[#ee4d2d] hover:bg-[#d73211] text-white font-medium px-6">
-              Đăng ký
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </nav>
-  );
+            {/* Thanh Tìm Kiếm (Search Bar) - Chỉ hiện trên màn hình máy tính */}
+            <div className="hidden md:flex flex-1 max-w-xl relative">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <Search className="w-5 h-5 text-gray-400" />
+                </div>
+                <input
+                    type="text"
+                    placeholder="Tìm kiếm món ăn, nhà hàng..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-all"
+                />
+            </div>
+
+            {/* Cụm chức năng bên phải */}
+            <div className="flex items-center gap-2 md:gap-4">
+                {/* Nút Tìm kiếm cho Mobile */}
+                <Button variant="ghost" size="icon" className="md:hidden rounded-full">
+                    <Search className="w-6 h-6" />
+                </Button>
+
+                {/* Nút Giỏ Hàng */}
+                <Link href="/cart" className="relative" onClick={handleCartClick}>
+                    <Button variant="ghost" size="icon" className="rounded-full">
+                        <ShoppingCart className="w-6 h-6" />
+                        {cartBadge}
+                    </Button>
+                </Link>
+
+                {/* Nút Đăng nhập / Đăng ký */}
+                <div className="hidden sm:flex gap-2">
+                    <Link href="/login">
+                        <Button variant="outline" className="rounded-full px-6">
+                            Login
+                        </Button>
+                    </Link>
+                    <Link href="/register">
+                        <Button className="rounded-full px-6 bg-blue-600 hover:bg-blue-700">
+                            Register
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        </nav>
+    );
 }

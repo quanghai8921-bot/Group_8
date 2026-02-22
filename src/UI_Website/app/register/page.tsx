@@ -139,7 +139,6 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* ✅ Địa chỉ lên trước mật khẩu */}
           <div>
             <Label htmlFor="addressDelivery" className="text-gray-700">
               Địa chỉ giao hàng

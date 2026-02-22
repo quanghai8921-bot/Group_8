@@ -1,20 +1,24 @@
-import type { Metadata } from "next";
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
 
-export const metadata: Metadata = {
-  title: "Lab 2: State and Navigation"
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata = {
+  title: "Website Của Bạn",
+  description: "Mô tả website",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="antialiased" suppressHydrationWarning={true}>
-        {children}
+      <body className={inter.className}>
+        <AuthProvider>
+          <CartProvider>
+            {props.children}
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
