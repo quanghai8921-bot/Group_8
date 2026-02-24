@@ -45,7 +45,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
-    const handleLogin = (e: React.FormEvent) => {
+    function handleLogin(e: React.SyntheticEvent) {
         e.preventDefault();
 
         if (email === "" || password === "") {
@@ -55,10 +55,15 @@ export default function LoginPage() {
 
         setError("");
         alert("Mật khẩu hoặc tài khoản không đúng");
-    };
+    }
 
-    const handleGoogleLogin = () => alert("Login Google (demo UI)");
-    const handleFacebookLogin = () => alert("Login Facebook (demo UI)");
+    function handleGoogleLogin() {
+        alert("Login Google (demo UI)");
+    }
+
+    function handleFacebookLogin() {
+        alert("Login Facebook (demo UI)");
+    }
 
     let errorMessageElement = null;
     if (error !== "") {
@@ -86,7 +91,9 @@ export default function LoginPage() {
                             type="email"
                             placeholder="example@gmail.com"
                             value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={function (e) {
+                                setEmail(e.target.value);
+                            }}
                             className="focus:border-[#FF5722] focus:ring-[#FF5722]"
                         />
                     </div>
@@ -100,10 +107,14 @@ export default function LoginPage() {
                             type="password"
                             placeholder="••••••••"
                             value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={function (e) {
+                                setPassword(e.target.value);
+                            }}
                             className="focus:border-[#FF5722] focus:ring-[#FF5722]"
                         />
                     </div>
+
+
 
                     <Button
                         type="submit"
@@ -112,6 +123,15 @@ export default function LoginPage() {
                         Đăng Nhập
                     </Button>
                 </form>
+
+                <div className="mt-4 text-right">
+                    <Link
+                        href="/forgotPassword"
+                        className="text-sm text-gray-600 hover:text-[#FF5722] hover:underline transition-colors"
+                    >
+                        Quên mật khẩu ?
+                    </Link>
+                </div>
 
                 <div className="my-6 flex items-center gap-3">
                     <div className="h-px w-full bg-gray-200" />
