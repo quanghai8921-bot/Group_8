@@ -71,10 +71,15 @@ public class InsertShopeeFood {
 
             for (int i = 0; i < rawHeaders.size(); i++) {
                 String header = rawHeaders.get(i).trim();
-                // BỎ QUA CỘT COMPUTED TRONG BẢNG ORDERS
+
                 if (tableName.equalsIgnoreCase("Orders") && header.equalsIgnoreCase("FinalAmount")) {
                     continue;
                 }
+
+                if (tableName.equalsIgnoreCase("Merchants") && header.equalsIgnoreCase("Rating")) {
+                    continue;
+                }
+
                 validHeaders.add(header);
                 validIndices.add(i);
             }

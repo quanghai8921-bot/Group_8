@@ -2,12 +2,12 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-// Chuyển đổi giá tiền từ chuỗi "37.690.000 VNĐ" sang số 37690000
+
 export const parsePrice = function (priceStr: string) {
     return parseInt(priceStr.replace(/\D/g, ""), 10);
 };
 
-// Kiểu dữ liệu cho sản phẩm trong giỏ
+
 export type CartItem = {
     id: number;
     name: string;
@@ -32,7 +32,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [isMounted, setIsMounted] = useState(false);
 
-    // 1. Load từ Local Storage khi ứng dụng chạy 
+    
     useEffect(function () {
         setIsMounted(true);
         const savedCart = localStorage.getItem("shopping-cart");
@@ -45,7 +45,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    // 2. Lưu vào Local Storage mỗi khi giỏ hàng thay đổi
+    
     useEffect(function () {
         if (isMounted === true) {
             localStorage.setItem("shopping-cart", JSON.stringify(cart));
@@ -94,7 +94,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setCart([]);
     };
 
-    // Tính toán tổng số lượng và tổng tiền
+    
     const totalItems = cart.reduce(function (sum, item) {
         return sum + item.quantity;
     }, 0);
