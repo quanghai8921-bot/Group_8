@@ -87,7 +87,7 @@ export default function ProductCard(props: ProductProps) {
 
       <CardFooter className="p-4 pt-0 flex flex-col gap-3">
         <Button
-          className="w-full !rounded-full bg-red-600 hover:bg-red-700 text-white font-bold"
+          className="w-full rounded-full bg-red-600 hover:bg-red-700 text-white font-bold transition-all active:scale-95"
           onClick={handleBuyNow}
         >
           <CreditCard className="w-4 h-4 mr-2" />
@@ -96,7 +96,7 @@ export default function ProductCard(props: ProductProps) {
 
         <Button
           variant="outline"
-          className="w-full !rounded-full border-blue-600 text-blue-600 hover:bg-blue-50"
+          className="w-full rounded-full border-blue-600 text-blue-600 hover:bg-blue-50 transition-all active:scale-95"
           onClick={handleAddToCart}
         >
           <ShoppingCart className="w-4 h-4 mr-2" />

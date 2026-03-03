@@ -3,20 +3,31 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 
-const inter = Inter({ subsets: ["latin"] });
+import Footer from "@/components/Footer";
+
+const interFont = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Website Của Bạn",
-  description: "Mô tả website",
+  title: "ShopeeFood - Giao Đồ Ăn Tận Nơi",
+  description: "Đặt món trực tuyến với hàng ngàn quán ăn, nhà hàng. Giao hàng nhanh chóng và tiện lợi cùng ShopeeFood.",
 };
 
 export default function RootLayout(props: { children: React.ReactNode }) {
+  const { children } = props;
+
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="vi">
+      <body className={interFont.className}>
         <AuthProvider>
           <CartProvider>
-            {props.children}
+            <div className="flex flex-col min-h-screen font-sans bg-gray-50">
+              {}
+              <div className="flex-grow">
+                {children}
+              </div>
+              {}
+              <Footer />
+            </div>
           </CartProvider>
         </AuthProvider>
       </body>

@@ -125,10 +125,12 @@ public class DataShopeeFood {
             String type=DANH_MUC[random.nextInt(DANH_MUC.length)];
             mapMerchantSangCategory.put(mid,type);
             mapMerchantSangFoods.put(mid,new ArrayList<>());
-            lines.add(String.format("%s,%s,Quan %s,%s,06:00:00,22:00:00,1,%s,%d",
-                    mid,uid,type,xuLy(taoDiaChi()),type,random.nextInt(3)+3));
+            // Đã thay đổi dòng này: Xóa %d và random.nextInt(3)+3 ở cuối
+            lines.add(String.format("%s,%s,Quan %s,%s,06:00:00,22:00:00,1,%s",
+                    mid,uid,type,xuLy(taoDiaChi()),type));
         }
-        ghi("Merchants","MerchantId,UserId,StoreName,StoreAddress,OpenTime,CloseTime,ActiveStatus,ShopType,Rating",lines);
+        // Đã thay đổi dòng này: Xóa Rating khỏi header
+        ghi("Merchants","MerchantId,UserId,StoreName,StoreAddress,OpenTime,CloseTime,ActiveStatus,ShopType",lines);
     }
 
     static void taoDrivers(){
