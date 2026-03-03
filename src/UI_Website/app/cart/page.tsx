@@ -1,20 +1,63 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { useCart, parsePrice } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
+import { placeOrder, handleApiError } from "@/lib/apiClient";
+import { AxiosError } from "axios";
 
 export default function CartPage() {
     const { cart, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const router = useRouter();
     
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("vi-VN", {
             style: "currency",
             currency: "VND",
         }).format(amount);
+    };
+
+    const handleCheckout = async () => {
+        setError("");
+        setLoading(true);
+
+        try {
+            const userId = localStorage.getItem("userId");
+            if (!userId) {
+                router.push("/login");
+                return;
+            }
+
+            // For demo purposes, using first merchant from cart
+            // In real app, you'd have merchant info in cart items
+            const merchantId = "MERCH001";
+
+            const response = await placeOrder({
+                userId,
+                merchantId,
+                deliveryAddress: "User Address", // Should be fetched from user profile
+                foodAmount: totalPrice,
+                shippingFee: 3.0,
+                discountAmount: 0,
+            });
+
+            // Clear cart and redirect to order confirmation
+            clearCart();
+            router.push(`/order/${response.orderId}`);
+        } catch (err) {
+            const axiosError = err as AxiosError;
+            const errorData = handleApiError(axiosError);
+            setError(errorData.message || "Không thể đặt hàng. Vui lòng thử lại.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -98,19 +141,30 @@ export default function CartPage() {
                         <div className="lg:col-span-1">
                             <div className="bg-white p-6 rounded-lg shadow-sm sticky top-24">
                                 <h2 className="text-xl font-bold mb-4">Tổng đơn hàng</h2>
+                                {error && (
+                                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                                        {error}
+                                    </div>
+                                )}
                                 <div className="flex justify-between mb-2">
                                     <span>Tạm tính:</span>
                                     <span>{formatCurrency(totalPrice)}</span>
                                 </div>
                                 <div className="flex justify-between mb-4 border-b pb-4">
-                                    <span>Giảm giá:</span>
-                                    <span>0 ₫</span>
+                                    <span>Phí giao hàng:</span>
+                                    <span>{formatCurrency(3.0)}</span>
                                 </div>
                                 <div className="flex justify-between text-xl font-bold mb-6 text-red-600">
                                     <span>Tổng cộng:</span>
-                                    <span>{formatCurrency(totalPrice)}</span>
+                                    <span>{formatCurrency(totalPrice + 3.0)}</span>
                                 </div>
-                                <Button className="w-full py-6 text-lg">Thanh Toán Ngay</Button>
+                                <Button 
+                                    className="w-full py-6 text-lg" 
+                                    onClick={handleCheckout}
+                                    disabled={loading || cart.length === 0}
+                                >
+                                    {loading ? "Đang xử lý..." : "Thanh Toán Ngay"}
+                                </Button>
                             </div>
                         </div>
                     </div>

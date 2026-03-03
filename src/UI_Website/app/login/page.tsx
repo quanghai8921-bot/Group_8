@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { loginUser, handleApiError } from "@/lib/apiClient";
+import { AxiosError } from "axios";
 
 function GoogleIcon() {
     return (
@@ -44,8 +47,10 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
-    function handleLogin(e: React.SyntheticEvent) {
+    async function handleLogin(e: React.SyntheticEvent) {
         e.preventDefault();
 
         if (email === "" || password === "") {
@@ -54,7 +59,25 @@ export default function LoginPage() {
         }
 
         setError("");
-        alert("Mật khẩu hoặc tài khoản không đúng");
+        setLoading(true);
+
+        try {
+            const response = await loginUser({ email, password });
+            
+            // Store user info in context or localStorage
+            localStorage.setItem("userId", response.userId);
+            localStorage.setItem("userFullName", response.fullName);
+            localStorage.setItem("userRole", response.role);
+            
+            // Redirect to home page
+            router.push("/");
+        } catch (err) {
+            const axiosError = err as AxiosError;
+            const errorData = handleApiError(axiosError);
+            setError(errorData.message || "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     function handleGoogleLogin() {
@@ -118,9 +141,10 @@ export default function LoginPage() {
 
                     <Button
                         type="submit"
-                        className="w-full !rounded-full bg-[#FF5722] hover:bg-[#FF6F00] text-white"
+                        disabled={loading}
+                        className="w-full !rounded-full bg-[#FF5722] hover:bg-[#FF6F00] text-white disabled:opacity-50"
                     >
-                        Đăng Nhập
+                        {loading ? "Đang đăng nhập..." : "Đăng Nhập"}
                     </Button>
                 </form>
 

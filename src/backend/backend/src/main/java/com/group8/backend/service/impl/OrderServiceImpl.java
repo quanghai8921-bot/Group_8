@@ -33,21 +33,31 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private VoucherRepository voucherRepository;
 
+    @Autowired
+    private CartRepository cartRepository;
+
+    @Autowired
+    private CartItemRepository cartItemRepository;
+
+    @Autowired
+    private OrderDetailRepository orderDetailRepository;
+
+    @Autowired
+    private OrderDetailToppingRepository orderDetailToppingRepository;
+
     @Override
     public OrderResponseDTO createOrder(OrderRequestDTO dto) {
-        // Validate User
+        // Existing behavior preserved (manual order creation)
         Optional<User> user = userRepository.findById(dto.getUserId());
         if (user.isEmpty()) {
             throw new RuntimeException("User not found");
         }
 
-        // Validate Merchant
         Optional<Merchant> merchant = merchantRepository.findById(dto.getMerchantId());
         if (merchant.isEmpty()) {
             throw new RuntimeException("Merchant not found");
         }
 
-        // Create Order
         Order order = new Order();
         order.setOrderId(generateId());
         order.setUser(user.get());
@@ -56,22 +66,102 @@ public class OrderServiceImpl implements OrderService {
         order.setFoodAmount(dto.getFoodAmount());
         order.setShippingFee(dto.getShippingFee());
         order.setDiscountAmount(dto.getDiscountAmount() != null ? dto.getDiscountAmount() : BigDecimal.ZERO);
-        order.setStatus((byte) 1); // Status: 1 = Pending
+        order.setStatus((byte) 1);
         order.setDeliveryAddress(dto.getDeliveryAddress());
 
-        // Set Driver if provided
         if (dto.getDriverId() != null) {
             Optional<Driver> driver = driverRepository.findById(dto.getDriverId());
             driver.ifPresent(order::setDriver);
         }
 
-        // Set Voucher if provided
         if (dto.getVoucherId() != null) {
             Optional<Voucher> voucher = voucherRepository.findById(dto.getVoucherId());
             voucher.ifPresent(order::setVoucher);
         }
 
         Order savedOrder = orderRepository.save(order);
+        return convertToResponseDTO(savedOrder);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public OrderResponseDTO createOrderFromCart(com.group8.backend.dto.PlaceOrderDTO dto) {
+        // Validate User & Merchant
+        User user = userRepository.findById(dto.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
+        Merchant merchant = merchantRepository.findById(dto.getMerchantId()).orElseThrow(() -> new RuntimeException("Merchant not found"));
+
+        Cart cart = cartRepository.findByUser_UserIdAndMerchant_MerchantId(dto.getUserId(), dto.getMerchantId())
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
+
+        if (cart.getSubtotalPrice() == null || cart.getSubtotalPrice().compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Cart is empty");
+        }
+
+        // Validate Voucher if provided
+        Voucher appliedVoucher = null;
+        if (dto.getVoucherCode() != null && !dto.getVoucherCode().isBlank()) {
+            Voucher v = voucherRepository.findByVoucherCode(dto.getVoucherCode())
+                    .orElseThrow(() -> new RuntimeException("Voucher not found"));
+            if (v.getEndDate() != null && v.getEndDate().isBefore(LocalDateTime.now())) {
+                throw new RuntimeException("Voucher has expired");
+            }
+            if (v.getMinOrderValue() != null && cart.getSubtotalPrice().compareTo(v.getMinOrderValue()) < 0) {
+                throw new RuntimeException("Cart total does not meet voucher minimum");
+            }
+            appliedVoucher = v;
+        }
+
+        // Create Order
+        Order order = new Order();
+        order.setOrderId(generateId());
+        order.setUser(user);
+        order.setMerchant(merchant);
+        order.setOrderTime(LocalDateTime.now());
+        order.setFoodAmount(cart.getSubtotalPrice());
+        order.setShippingFee(dto.getShippingFee());
+        order.setDiscountAmount(appliedVoucher != null ? appliedVoucher.getDiscountValue() : java.math.BigDecimal.ZERO);
+        order.setStatus((byte) 1);
+        order.setDeliveryAddress(dto.getDeliveryAddress());
+        if (dto.getDriverId() != null) {
+            driverRepository.findById(dto.getDriverId()).ifPresent(order::setDriver);
+        }
+        if (appliedVoucher != null) order.setVoucher(appliedVoucher);
+
+        Order savedOrder = orderRepository.save(order);
+
+        // Transfer CartItems -> OrderDetail
+        List<CartItem> cartItems = cartItemRepository.findByCart_CartId(cart.getCartId());
+        for (CartItem ci : cartItems) {
+            OrderDetail od = new OrderDetail();
+            od.setOrderDetailId(generateId());
+            od.setOrder(savedOrder);
+            od.setFoodItem(ci.getFoodItem());
+            od.setFoodName(ci.getFoodItem().getFoodName());
+            od.setQuantity(ci.getQuantity());
+            java.math.BigDecimal unitPrice = ci.getFoodItem().getSalePrice() != null ? ci.getFoodItem().getSalePrice() : ci.getFoodItem().getOriginalPrice();
+            od.setUnitPrice(unitPrice);
+            orderDetailRepository.save(od);
+
+            // Toppings -> OrderDetailTopping
+            if (ci.getCartItemToppings() != null) {
+                for (CartItemTopping ct : ci.getCartItemToppings()) {
+                    OrderDetailTopping odt = new OrderDetailTopping();
+                    odt.setOdToppingId(generateId());
+                    odt.setOrderDetail(od);
+                    odt.setOptionTopping(ct.getOptionTopping());
+                    if (ct.getOptionTopping() != null) {
+                        odt.setToppingName(ct.getOptionTopping().getNameOption());
+                        odt.setToppingPrice(ct.getOptionTopping().getSurcharge());
+                    }
+                    orderDetailToppingRepository.save(odt);
+                }
+            }
+        }
+
+        // Clear Cart
+        cartItemRepository.findByCart_CartId(cart.getCartId()).forEach(cartItemRepository::delete);
+        cartRepository.delete(cart);
+
         return convertToResponseDTO(savedOrder);
     }
 

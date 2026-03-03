@@ -1,0 +1,675 @@
+{
+  "info": {
+    "_postman_id": "food-delivery-app-2026",
+    "name": "Food Delivery App - ShopeeFood API",
+    "description": "Complete API collection for Food Delivery Application. Includes Authentication, Food Management, Shopping Cart, and Order Management endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "123456"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', jsonData.userId);",
+                  "    pm.environment.set('userId', jsonData.userId);",
+                  "    console.log('✓ User registered successfully');",
+                  "    console.log('User ID: ' + jsonData.userId);",
+                  "} else {",
+                  "    console.log('✗ Registration failed');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"phoneNumber\": \"0912345678\",\n  \"birthDate\": \"1990-05-15\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4040/api/users/register",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "users",
+                "register"
+              ]
+            },
+            "description": "Register a new user account with email and password"
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', jsonData.token);",
+                  "    pm.environment.set('authToken', jsonData.token);",
+                  "    pm.collectionVariables.set('userId', jsonData.userId);",
+                  "    pm.environment.set('userId', jsonData.userId);",
+                  "    console.log('✓ Login successful');",
+                  "    console.log('Token: ' + jsonData.token.substring(0, 20) + '...');",
+                  "} else {",
+                  "    console.log('✗ Login failed');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4040/api/users/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "users",
+                "login"
+              ]
+            },
+            "description": "Authenticate with email and password to get JWT token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Food Management",
+      "item": [
+        {
+          "name": "Get All Foods",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/foods",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "foods"
+              ]
+            },
+            "description": "Retrieve all available food items from all merchants"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Foods by Merchant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/foods/merchant/MERCH001",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "foods",
+                "merchant",
+                "MERCH001"
+              ]
+            },
+            "description": "Get food items from a specific merchant. Replace MERCH001 with actual merchant ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Shopping Cart",
+      "item": [
+        {
+          "name": "Add to Cart",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Make sure you have authToken and userId set before running this",
+                  "if (!pm.collectionVariables.get('authToken')) {",
+                  "    console.warn('⚠️ authToken not set. Run Login endpoint first!');",
+                  "}",
+                  "if (!pm.collectionVariables.get('userId')) {",
+                  "    console.warn('⚠️ userId not set. Run Register or Login endpoint first!');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✓ Item added to cart');",
+                  "    console.log('Total Price: ' + jsonData.totalPrice);",
+                  "} else {",
+                  "    console.log('✗ Failed to add item');",
+                  "    console.log(pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"foodId\": \"FOOD001\",\n  \"quantity\": 2,\n  \"toppingIds\": [\n    \"TOP001\",\n    \"TOP002\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4040/api/carts/add-item",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "carts",
+                "add-item"
+              ]
+            },
+            "description": "Add a food item to user's shopping cart. Requires authentication token."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cart",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/carts/{{userId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "carts",
+                "{{userId}}"
+              ]
+            },
+            "description": "Retrieve the user's shopping cart with all items and total amount"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove from Cart",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/carts/remove/CI001",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "carts",
+                "remove",
+                "CI001"
+              ]
+            },
+            "description": "Remove a specific item from cart. Replace CI001 with actual cart item ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/carts/{{userId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "carts",
+                "{{userId}}"
+              ]
+            },
+            "description": "Clear the entire shopping cart for the user"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Place Order",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Verify required variables",
+                  "if (!pm.collectionVariables.get('authToken')) {",
+                  "    console.warn('⚠️ authToken not set');",
+                  "}",
+                  "if (!pm.collectionVariables.get('userId')) {",
+                  "    console.warn('⚠️ userId not set');",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('orderId', jsonData.orderId);",
+                  "    pm.environment.set('orderId', jsonData.orderId);",
+                  "    console.log('✓ Order placed successfully');",
+                  "    console.log('Order ID: ' + jsonData.orderId);",
+                  "    console.log('Total Amount: ' + jsonData.totalAmount);",
+                  "} else {",
+                  "    console.log('✗ Failed to place order');",
+                  "    console.log(pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"merchantId\": \"MERCH001\",\n  \"driverId\": null,\n  \"voucherId\": null,\n  \"deliveryAddress\": \"123 Main Street, City, Country\",\n  \"foodAmount\": 25.98,\n  \"shippingFee\": 3.00,\n  \"discountAmount\": 0\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4040/api/orders/place-order",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "orders",
+                "place-order"
+              ]
+            },
+            "description": "Create a new order from cart items. Requires authentication token and valid order details."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Orders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/orders/user/{{userId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "orders",
+                "user",
+                "{{userId}}"
+              ]
+            },
+            "description": "Get all orders placed by the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/orders/{{orderId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "orders",
+                "{{orderId}}"
+              ]
+            },
+            "description": "Get detailed information about a specific order"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reviews",
+      "item": [
+        {
+          "name": "Submit Review",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('✓ Review submitted successfully');",
+                  "    console.log('Review ID: ' + jsonData.reviewId);",
+                  "    console.log('Rating: ' + jsonData.rating);",
+                  "} else {",
+                  "    console.log('✗ Failed to submit review');",
+                  "    console.log('Note: Order must be completed (status = 4)');",
+                  "    console.log(pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"{{orderId}}\",\n  \"rating\": 5,\n  \"comment\": \"Great food and fast delivery! Highly recommended.\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:4040/api/reviews/submit",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "reviews",
+                "submit"
+              ]
+            },
+            "description": "Submit a review for a completed order. Rating must be 1-5. Order status must be completed (4)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Reviews",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{authToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:4040/api/reviews/order/{{orderId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "4040",
+              "path": [
+                "api",
+                "reviews",
+                "order",
+                "{{orderId}}"
+              ]
+            },
+            "description": "Get all reviews submitted for a specific order"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

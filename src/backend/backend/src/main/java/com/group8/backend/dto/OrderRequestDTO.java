@@ -3,7 +3,6 @@ package com.group8.backend.dto;
 import lombok.*;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor

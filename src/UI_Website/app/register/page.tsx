@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { registerUser, handleApiError } from "@/lib/apiClient";
+import { AxiosError } from "axios";
 
 type RegisterForm = {
   fullName: string;
   birthDate: string;
   phoneNumber: string;
   email: string;
-  addressDelivery: string; // ✅ địa chỉ trước mật khẩu
+  addressDelivery: string;
   password: string;
   confirmPassword: string;
 };
@@ -28,8 +31,10 @@ export default function RegisterPage() {
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (
@@ -37,7 +42,6 @@ export default function RegisterPage() {
       !formData.birthDate ||
       !formData.phoneNumber ||
       !formData.email ||
-      !formData.addressDelivery ||
       !formData.password ||
       !formData.confirmPassword
     ) {
@@ -56,8 +60,26 @@ export default function RegisterPage() {
     }
 
     setError("");
-    console.log("REGISTER_FORM:", formData);
-    alert("Đăng ký thành công! (demo)");
+    setLoading(true);
+
+    try {
+      await registerUser({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        phoneNumber: formData.phoneNumber,
+        birthDate: formData.birthDate,
+      });
+
+      // Redirect to login page after successful registration
+      router.push("/login");
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      const errorData = handleApiError(axiosError);
+      setError(errorData.message || "Đăng ký thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputCls = "focus:border-[#FF5722] focus:ring-[#FF5722]";
@@ -186,9 +208,10 @@ export default function RegisterPage() {
 
           <Button
             type="submit"
-            className="w-full !rounded-full bg-[#FF5722] hover:bg-[#FF6F00] text-white"
+            disabled={loading}
+            className="w-full !rounded-full bg-[#FF5722] hover:bg-[#FF6F00] text-white disabled:opacity-50"
           >
-            Đăng Ký
+            {loading ? "Đang đăng ký..." : "Đăng Ký"}
           </Button>
         </form>
 

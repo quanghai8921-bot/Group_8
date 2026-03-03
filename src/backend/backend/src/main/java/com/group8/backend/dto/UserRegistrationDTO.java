@@ -27,7 +27,7 @@ public class UserRegistrationDTO {
 
     @NotBlank(message = "Password cannot be blank")
     @Size(min = 6, max = 30, message = "Password must be between 6 and 30 characters")
-    private String passwords;
+    private String password;
 
     @NotBlank(message = "Address cannot be blank")
     @Size(min = 5, max = 100, message = "Address must be between 5 and 100 characters")

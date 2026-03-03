@@ -31,6 +31,16 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/place")
+    public ResponseEntity<Map<String, Object>> placeOrder(@Valid @RequestBody com.group8.backend.dto.PlaceOrderDTO dto) {
+        OrderResponseDTO order = orderService.createOrderFromCart(dto);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Order placed successfully");
+        response.put("data", order);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @GetMapping("/{orderId}")
     public ResponseEntity<Map<String, Object>> getOrderById(@PathVariable String orderId) {
         try {
