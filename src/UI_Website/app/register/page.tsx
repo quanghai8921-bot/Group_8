@@ -1,11 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+<<<<<<< HEAD
+import { registerUser, handleApiError } from "@/lib/apiClient";
+import { AxiosError } from "axios";
+=======
 import Image from "next/image";
+>>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
 
 type RegisterForm = {
   fullName: string;
@@ -30,6 +36,24 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
 
+<<<<<<< HEAD
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (
+      !formData.fullName ||
+      !formData.birthDate ||
+      !formData.phoneNumber ||
+      !formData.email ||
+      !formData.password ||
+      !formData.confirmPassword
+    ) {
+      setError("Vui lòng điền tất cả các trường!");
+=======
   const [registrationErrorMessage, setRegistrationErrorMessage] = useState("");
 
   
@@ -58,6 +82,7 @@ export default function RegisterPage() {
 
     if (isAnyFieldEmpty === true) {
       setRegistrationErrorMessage("Vui lòng điền tất cả các trường thông tin để đăng ký!");
+>>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
       return;
     }
 
@@ -74,10 +99,35 @@ export default function RegisterPage() {
       return;
     }
 
+<<<<<<< HEAD
+    setError("");
+    setLoading(true);
+
+    try {
+      await registerUser({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        phoneNumber: formData.phoneNumber,
+        birthDate: formData.birthDate,
+      });
+
+      // Redirect to login page after successful registration
+      router.push("/login");
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      const errorData = handleApiError(axiosError);
+      setError(errorData.message || "Đăng ký thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+=======
     
     setRegistrationErrorMessage("");
     alert("Chúc mừng! Bạn đã đăng ký tài khoản ShopeeFood thành công (Chế độ Demo).");
   }
+>>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
 
   
   function handleSocialConnect(serviceName: string) {
@@ -258,8 +308,108 @@ export default function RegisterPage() {
               </p>
             </div>
           </div>
+<<<<<<< HEAD
+
+          <div>
+            <Label htmlFor="phoneNumber" className="text-gray-700">
+              Số điện thoại
+            </Label>
+            <Input
+              id="phoneNumber"
+              placeholder="VD: 0987654321"
+              value={formData.phoneNumber}
+              inputMode="numeric"
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  phoneNumber: e.target.value.replace(/\D/g, ""),
+                })
+              }
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="email" className="text-gray-700">
+              Email
+            </Label>
+            <Input
+              id="email"
+              placeholder="example@gmail.com"
+              type="email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="addressDelivery" className="text-gray-700">
+              Địa chỉ giao hàng
+            </Label>
+            <Input
+              id="addressDelivery"
+              placeholder="Số nhà, đường, phường/xã, quận/huyện..."
+              value={formData.addressDelivery}
+              onChange={(e) =>
+                setFormData({ ...formData, addressDelivery: e.target.value })
+              }
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password" className="text-gray-700">
+              Mật khẩu
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="confirmPassword" className="text-gray-700">
+              Nhập lại mật khẩu
+            </Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={(e) =>
+                setFormData({ ...formData, confirmPassword: e.target.value })
+              }
+              className={inputCls}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full !rounded-full bg-[#FF5722] hover:bg-[#FF6F00] text-white disabled:opacity-50"
+          >
+            {loading ? "Đang đăng ký..." : "Đăng Ký"}
+          </Button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Đã có tài khoản?{" "}
+          <Link href="/login" className="text-[#FF5722] hover:underline">
+            Đăng nhập
+          </Link>
+        </p>
+      </div>
+=======
         </div>
       </main>
+>>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
     </div>
   );
 }

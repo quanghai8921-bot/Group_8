@@ -29,5 +29,5 @@ public class DriverLocation {
     private LocalDateTime updatedAt;
 
     @Column(name = "Is_Active")
-    private boolean isActive = false;
+    private boolean active = false;
 }

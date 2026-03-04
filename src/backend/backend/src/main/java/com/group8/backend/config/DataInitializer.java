@@ -18,9 +18,6 @@ public class DataInitializer implements CommandLineRunner {
     private UserRepository userRepository;
 
     @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
     private MerchantRepository merchantRepository;
 
     @Autowired
@@ -48,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
         customer.setBirthDate(java.sql.Date.valueOf(LocalDate.of(1990, 5, 15)));
         customer.setPhoneNumber("0912345678");
         customer.setEmail("john@example.com");
-        customer.setPasswords("password123");
+        customer.setPassword("password123");
         customer.setAddressDelivery("123 Main Street, District 1");
         customer.setShopeeCoins(0);
         customer.setRoles(new HashSet<>());
@@ -62,7 +59,7 @@ public class DataInitializer implements CommandLineRunner {
         merchantUser.setBirthDate(java.sql.Date.valueOf(LocalDate.of(1985, 3, 20)));
         merchantUser.setPhoneNumber("0987654321");
         merchantUser.setEmail("merchant@pizzashop.com");
-        merchantUser.setPasswords("merchant123");
+        merchantUser.setPassword("merchant123");
         merchantUser.setAddressDelivery("456 Pizza Street, District 3");
         merchantUser.setShopeeCoins(0);
         merchantUser.setRoles(new HashSet<>());

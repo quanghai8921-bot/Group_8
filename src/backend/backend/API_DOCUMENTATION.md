@@ -40,7 +40,7 @@ Content-Type: application/json
   "birthDate": "1995-08-20",
   "phoneNumber": "0912345679",
   "email": "jane@example.com",
-  "passwords": "securePassword123",
+  "password": "securePassword123",
   "addressDelivery": "789 Oak Avenue, District 2"
 }
 ```
@@ -68,7 +68,7 @@ Content-Type: application/json
 - `birthDate`: Required, format: yyyy-MM-dd
 - `phoneNumber`: Required, exactly 10 digits
 - `email`: Required, valid email format
-- `passwords`: Required, 6-30 characters
+- `password`: Required, 6-30 characters
 - `addressDelivery`: Required, 5-100 characters
 
 ---
@@ -90,7 +90,7 @@ Content-Type: application/json
 ```json
 {
   "email": "john@example.com",
-  "passwords": "password123"
+  "password": "password123"
 }
 ```
 
@@ -121,7 +121,7 @@ Content-Type: application/json
 
 **Validation Rules:**
 - `email`: Required, valid email format
-- `passwords`: Required, not blank
+- `password`: Required, not blank
 
 ---
 
@@ -186,7 +186,7 @@ Content-Type: application/json
   "birthDate": "1990-05-15",
   "phoneNumber": "0987654321",
   "email": "john.smith@example.com",
-  "passwords": "newPassword456",
+  "password": "newPassword456",
   "addressDelivery": "456 Oak Street, District 3"
 }
 ```
@@ -687,7 +687,7 @@ curl -X POST http://localhost:4040/api/users/register \
     "birthDate": "1995-08-20",
     "phoneNumber": "0912345679",
     "email": "jane@example.com",
-    "passwords": "securePassword123",
+    "password": "securePassword123",
     "addressDelivery": "789 Oak Avenue, District 2"
   }'
 ```
@@ -698,7 +698,7 @@ curl -X POST http://localhost:4040/api/users/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "john@example.com",
-    "passwords": "password123"
+    "password": "password123"
   }'
 ```
 

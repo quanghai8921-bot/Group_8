@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Optional;
 
 @Service
@@ -38,7 +37,7 @@ public class UserServiceImpl implements UserService {
         user.setFullName(dto.getFullName());
         user.setEmail(dto.getEmail());
         user.setPhoneNumber(dto.getPhoneNumber());
-        user.setPasswords(dto.getPasswords());
+        user.setPassword(dto.getPassword());
         user.setAddressDelivery(dto.getAddressDelivery());
         user.setShopeeCoins(0);
 
@@ -61,7 +60,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User foundUser = user.get();
-        if (!foundUser.getPasswords().equals(dto.getPasswords())) {
+        if (!foundUser.getPassword().equals(dto.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 

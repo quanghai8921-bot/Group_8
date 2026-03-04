@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
-@Table(name = "[Order]")
+@Table(name = "[order]")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class Order {

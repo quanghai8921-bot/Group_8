@@ -11,5 +11,5 @@ public class UserLoginDTO {
     private String email;
 
     @NotBlank(message = "Password cannot be blank")
-    private String passwords;
+    private String password;
 }
