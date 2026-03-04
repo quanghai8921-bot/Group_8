@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Card,
     CardContent,
@@ -25,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
     Plus,
     Edit,
@@ -451,8 +453,8 @@ export default function MenuManagement() {
                                                         key={category.categoryid}
                                                         onClick={() => setFormData(prev => ({ ...prev, categoryId: category.categoryid }))}
                                                         className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                                                                ? 'bg-red-50 border-[#ee4d2d] text-[#ee4d2d]'
-                                                                : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
+                                                            ? 'bg-red-50 border-[#ee4d2d] text-[#ee4d2d]'
+                                                            : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'
                                                             }`}
                                                     >
                                                         <Icon className="h-4 w-4 shrink-0" />
@@ -576,8 +578,8 @@ export default function MenuManagement() {
                                             </td>
                                             <td className="p-6">
                                                 <Badge className={`rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-tight border-none ${dish.shopType === "Food"
-                                                        ? "bg-orange-50 text-orange-600"
-                                                        : "bg-blue-50 text-blue-600"
+                                                    ? "bg-orange-50 text-orange-600"
+                                                    : "bg-blue-50 text-blue-600"
                                                     }`}>
                                                     {dish.shopType === "Food" ? "Đồ ăn" : "Đồ uống"}
                                                 </Badge>

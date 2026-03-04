@@ -6,12 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-<<<<<<< HEAD
-import { registerUser, handleApiError } from "@/lib/apiClient";
-import { AxiosError } from "axios";
-=======
 import Image from "next/image";
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
 
 type RegisterForm = {
   fullName: string;
@@ -23,9 +18,7 @@ type RegisterForm = {
   confirmPassword: string;
 };
 
-
 export default function RegisterPage() {
-  
   const [registrationFormData, setRegistrationFormData] = useState<RegisterForm>({
     fullName: "",
     birthDate: "",
@@ -36,27 +29,8 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
 
-<<<<<<< HEAD
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (
-      !formData.fullName ||
-      !formData.birthDate ||
-      !formData.phoneNumber ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
-      setError("Vui lòng điền tất cả các trường!");
-=======
   const [registrationErrorMessage, setRegistrationErrorMessage] = useState("");
 
-  
   function updateFormField(fieldName: keyof RegisterForm, newValue: string) {
     setRegistrationFormData(function (previousState) {
       return {
@@ -66,12 +40,9 @@ export default function RegisterPage() {
     });
   }
 
-  
   function processUserRegistration(event: React.FormEvent) {
-    
     event.preventDefault();
 
-    
     const isAnyFieldEmpty = !registrationFormData.fullName ||
       !registrationFormData.birthDate ||
       !registrationFormData.phoneNumber ||
@@ -82,61 +53,30 @@ export default function RegisterPage() {
 
     if (isAnyFieldEmpty === true) {
       setRegistrationErrorMessage("Vui lòng điền tất cả các trường thông tin để đăng ký!");
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
       return;
     }
 
-    
     const phoneRegex = /^\d{10}$/;
     if (phoneRegex.test(registrationFormData.phoneNumber) === false) {
       setRegistrationErrorMessage("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số!");
       return;
     }
 
-    
     if (registrationFormData.password !== registrationFormData.confirmPassword) {
       setRegistrationErrorMessage("Mật khẩu nhập lại không khớp với mật khẩu đã chọn!");
       return;
     }
 
-<<<<<<< HEAD
-    setError("");
-    setLoading(true);
-
-    try {
-      await registerUser({
-        fullName: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        phoneNumber: formData.phoneNumber,
-        birthDate: formData.birthDate,
-      });
-
-      // Redirect to login page after successful registration
-      router.push("/login");
-    } catch (err) {
-      const axiosError = err as AxiosError;
-      const errorData = handleApiError(axiosError);
-      setError(errorData.message || "Đăng ký thất bại. Vui lòng thử lại.");
-    } finally {
-      setLoading(false);
-    }
-  };
-=======
-    
     setRegistrationErrorMessage("");
     alert("Chúc mừng! Bạn đã đăng ký tài khoản ShopeeFood thành công (Chế độ Demo).");
   }
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
 
-  
   function handleSocialConnect(serviceName: string) {
     alert("Kết nối với " + serviceName + " đang được phát triển. Vui lòng đăng ký thủ công.");
   }
 
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
-      {}
       <header className="bg-white py-6 shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
           <div className="flex items-center gap-6">
@@ -157,11 +97,8 @@ export default function RegisterPage() {
         </div>
       </header>
 
-      {}
       <main className="flex-grow bg-[#ee4d2d] relative flex items-center justify-center py-12 md:py-20">
         <div className="container max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-
-          {}
           <div className="hidden lg:flex justify-center items-center">
             <div className="relative w-full max-w-2xl aspect-[1.1/1] hover:scale-105 transition-transform duration-1000">
               <Image
@@ -174,14 +111,12 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {}
           <div className="flex justify-center lg:justify-end">
             <div className="w-full max-w-[550px] bg-white rounded-[40px] shadow-2xl p-10 relative z-10 border border-orange-50">
               <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3">
                 Tạo tài khoản mới
               </h2>
 
-              {}
               {registrationErrorMessage !== "" && (
                 <div className="bg-red-50 border-2 border-red-100 p-4 mb-8 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-bold animate-in slide-in-from-top duration-300">
                   <svg viewBox="0 0 16 16" className="w-5 h-5 fill-current shrink-0">
@@ -275,7 +210,6 @@ export default function RegisterPage() {
                 </Button>
               </form>
 
-              {}
               <div className="mt-10 flex items-center gap-4">
                 <div className="h-px flex-1 bg-gray-100"></div>
                 <span className="text-[10px] text-gray-300 font-black uppercase tracking-widest">Hoặc kết nối qua</span>
@@ -301,116 +235,14 @@ export default function RegisterPage() {
                 </Button>
               </div>
 
-              {}
               <p className="mt-12 text-center text-sm font-medium text-gray-400">
                 Bạn đã có tài khoản ShopeeFood?{" "}
                 <Link href="/login" className="text-[#ee4d2d] font-black hover:underline ml-1">Đăng nhập</Link>
               </p>
             </div>
           </div>
-<<<<<<< HEAD
-
-          <div>
-            <Label htmlFor="phoneNumber" className="text-gray-700">
-              Số điện thoại
-            </Label>
-            <Input
-              id="phoneNumber"
-              placeholder="VD: 0987654321"
-              value={formData.phoneNumber}
-              inputMode="numeric"
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  phoneNumber: e.target.value.replace(/\D/g, ""),
-                })
-              }
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="email" className="text-gray-700">
-              Email
-            </Label>
-            <Input
-              id="email"
-              placeholder="example@gmail.com"
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="addressDelivery" className="text-gray-700">
-              Địa chỉ giao hàng
-            </Label>
-            <Input
-              id="addressDelivery"
-              placeholder="Số nhà, đường, phường/xã, quận/huyện..."
-              value={formData.addressDelivery}
-              onChange={(e) =>
-                setFormData({ ...formData, addressDelivery: e.target.value })
-              }
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="password" className="text-gray-700">
-              Mật khẩu
-            </Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="confirmPassword" className="text-gray-700">
-              Nhập lại mật khẩu
-            </Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(e) =>
-                setFormData({ ...formData, confirmPassword: e.target.value })
-              }
-              className={inputCls}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full !rounded-full bg-[#FF5722] hover:bg-[#FF6F00] text-white disabled:opacity-50"
-          >
-            {loading ? "Đang đăng ký..." : "Đăng Ký"}
-          </Button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Đã có tài khoản?{" "}
-          <Link href="/login" className="text-[#FF5722] hover:underline">
-            Đăng nhập
-          </Link>
-        </p>
-      </div>
-=======
         </div>
       </main>
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
     </div>
   );
 }
-

@@ -2,77 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-<<<<<<< HEAD
-=======
 import { useAuth } from "@/context/AuthContext";
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-<<<<<<< HEAD
-import { loginUser, handleApiError } from "@/lib/apiClient";
-import { AxiosError } from "axios";
-=======
 import Image from "next/image";
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
-
 
 export default function LoginPage() {
-<<<<<<< HEAD
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
-    const router = useRouter();
-
-    async function handleLogin(e: React.SyntheticEvent) {
-        e.preventDefault();
-=======
-    
     const pageRouter = useRouter();
     const authenticationContext = useAuth();
 
-    
     const [userEmail, setUserEmail] = useState("");
     const [userPassword, setUserPassword] = useState("");
     const [loginErrorMessage, setLoginErrorMessage] = useState("");
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
 
-    
     function performUserAuthentication(event: React.SyntheticEvent) {
-        
         event.preventDefault();
 
-        
         if (userEmail === "" || userPassword === "") {
             setLoginErrorMessage("Vui lòng điền đầy đủ email và mật khẩu!");
             return;
         }
 
-<<<<<<< HEAD
-        setError("");
-        setLoading(true);
-
-        try {
-            const response = await loginUser({ email, password });
-            
-            // Store user info in context or localStorage
-            localStorage.setItem("userId", response.userId);
-            localStorage.setItem("userFullName", response.fullName);
-            localStorage.setItem("userRole", response.role);
-            
-            // Redirect to home page
-            router.push("/");
-        } catch (err) {
-            const axiosError = err as AxiosError;
-            const errorData = handleApiError(axiosError);
-            setError(errorData.message || "Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.");
-        } finally {
-            setLoading(false);
-        }
-=======
-        
+        // Kiểm tra đăng nhập (Hardcoded cho User và Admin/Merchant)
         if (userEmail === "quanghai8921@gmail.com" && userPassword === "123456") {
             setLoginErrorMessage("");
             alert("Đăng nhập thành công! Chào mừng bạn quay trở lại ShopeeFood.");
@@ -80,7 +33,6 @@ export default function LoginPage() {
             return;
         }
 
-        
         if (userEmail === "chuquan1@gmail.com" && userPassword === "123456") {
             setLoginErrorMessage("");
             alert("Đăng nhập Merchant thành công! Đang chuyển hướng đến trang quản lý.");
@@ -88,19 +40,15 @@ export default function LoginPage() {
             return;
         }
 
-        
         setLoginErrorMessage("Mật khẩu hoặc tài khoản không đúng. Vui lòng kiểm tra lại.");
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
     }
 
-    
     function handleSocialLogin(platformName: string) {
         alert("Tính năng đăng nhập qua " + platformName + " hiện đang được bảo trì. Vui lòng dùng tài khoản ShopeeFood.");
     }
 
     return (
         <div className="min-h-screen bg-white flex flex-col font-sans">
-            {}
             <header className="bg-white py-6 shadow-sm border-b sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
                     <div className="flex items-center gap-6">
@@ -121,11 +69,8 @@ export default function LoginPage() {
                 </div>
             </header>
 
-            {}
             <main className="flex-grow bg-[#ee4d2d] relative flex items-center justify-center py-16">
                 <div className="container max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-
-                    {}
                     <div className="hidden lg:flex justify-center items-center drop-shadow-2xl">
                         <div className="relative w-full max-w-2xl aspect-[1.1/1] transform hover:scale-[1.02] transition-transform duration-700">
                             <Image
@@ -138,12 +83,10 @@ export default function LoginPage() {
                         </div>
                     </div>
 
-                    {}
                     <div className="flex justify-center lg:justify-end">
                         <div className="w-full max-w-[450px] bg-white rounded-3xl shadow-2xl p-10 relative z-10 border border-orange-100">
                             <h2 className="text-2xl font-black text-gray-900 mb-10 tracking-tight">Đăng nhập tài khoản</h2>
 
-                            {}
                             {loginErrorMessage !== "" && (
                                 <div className="bg-red-50 border-2 border-red-100 p-4 mb-8 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-bold animate-pulse">
                                     <svg viewBox="0 0 16 16" className="w-5 h-5 fill-current shrink-0">
@@ -153,7 +96,6 @@ export default function LoginPage() {
                                 </div>
                             )}
 
-                            {}
                             <form onSubmit={performUserAuthentication} className="space-y-6">
                                 <div className="space-y-2">
                                     <Label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email hoặc Số điện thoại</Label>
@@ -188,7 +130,6 @@ export default function LoginPage() {
                                 <Link href="/forgotPassword" title="Lấy lại mật khẩu qua email" className="hover:underline">Quên mật khẩu?</Link>
                             </div>
 
-                            {}
                             <div className="mt-10 flex items-center gap-4">
                                 <div className="h-[2px] flex-1 bg-gray-50"></div>
                                 <span className="text-[10px] text-gray-300 font-black uppercase tracking-[0.2em]">Hoặc login qua</span>
@@ -214,35 +155,12 @@ export default function LoginPage() {
                                 </Button>
                             </div>
 
-                            {}
                             <p className="mt-12 text-center text-sm font-medium text-gray-400">
                                 Bạn mới biết đến ShopeeFood?{" "}
                                 <Link href="/register" className="text-[#ee4d2d] font-black hover:underline ml-1">Đăng ký ngay</Link>
                             </p>
                         </div>
                     </div>
-<<<<<<< HEAD
-
-
-
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full !rounded-full bg-[#FF5722] hover:bg-[#FF6F00] text-white disabled:opacity-50"
-                    >
-                        {loading ? "Đang đăng nhập..." : "Đăng Nhập"}
-                    </Button>
-                </form>
-
-                <div className="mt-4 text-right">
-                    <Link
-                        href="/forgotPassword"
-                        className="text-sm text-gray-600 hover:text-[#FF5722] hover:underline transition-colors"
-                    >
-                        Quên mật khẩu ?
-                    </Link>
-=======
->>>>>>> c04afd24cc616d1ab06d79b8eea1eb32c37d4155
                 </div>
             </main>
         </div>
