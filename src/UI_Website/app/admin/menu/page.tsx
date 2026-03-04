@@ -1,10 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Pagination } from "@/components/ui/pagination"
 import {
     Dialog,
     DialogContent,
@@ -14,7 +16,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
     Plus,
     Edit,
@@ -29,9 +30,14 @@ import {
     Upload,
     Flame,
     Leaf,
-    Fish
+    Fish,
+    Store,
+    Lock,
+    Unlock,
+    Search,
+    ChevronRight,
+    DollarSign
 } from "lucide-react"
-
 
 interface ToppingOption {
     toppingName: string
@@ -45,13 +51,10 @@ interface Category {
 
 interface Dish {
     id: string
-
     storeName: string
     openTime: string
     closeTime: string
     shopType: "Food" | "Drink"
-
-
     categoryId: string
     merchantId: string
     foodName: string
@@ -60,23 +63,17 @@ interface Dish {
     foodImage: string
     descriptions: string
     foodStatus: "Available" | "Out of Stock" | "Unavailable"
-
-
     rating?: number
     toppingOptions?: ToppingOption[]
 }
 
-const DEFAULT_DISH: Partial<Dish> = {
-    foodName: "",
-    descriptions: "",
-    originalPrice: "",
-    salePrice: "",
-    foodImage: "/images/bunchahanoi.jpg",
-    foodStatus: "Available",
-    categoryId: "",
-    merchantId: "M001",
-    rating: 5,
-    toppingOptions: []
+interface Shop {
+    merchantId: string
+    storeName: string
+    ownerName: string
+    status: 'Open' | 'Locked'
+    revenue: number
+    totalOrders: number
 }
 
 const STATIC_CATEGORIES = [
@@ -95,618 +92,267 @@ const STATIC_CATEGORIES = [
     { categoryid: "13", categoryname: "Cơm hộp" },
 ]
 
-const CATEGORY_ICON_MAP: Record<string, any> = {
-    "Tất cả": LayoutGrid,
-    "Thức uống": Coffee,
-    "Đồ ăn": Utensils,
-    "Đồ chay": Leaf,
-    "Bánh kem": IceCream,
-    "Tráng miệng": IceCream,
-    "Pizza/Burger": Pizza,
-    "Món lẩu": Flame,
-    "Sushi": Fish,
-    "Mì": Soup,
-    "Phở": Soup,
-    "Bún": Soup,
-    "Cơm hộp": Box,
-    "Default": Utensils
-}
-
-
 export default function MenuManagement() {
-
-
-
     const [dishList, setDishList] = useState<Dish[]>([]);
-
-
+    const [shops, setShops] = useState<Shop[]>([
+        { merchantId: "M001", storeName: "ShopeeFood Official", ownerName: "Trần Thị B", status: 'Open', revenue: 12500000, totalOrders: 156 },
+        { merchantId: "M002", storeName: "Bún Chả Hà Nội Q.1", ownerName: "Hoàng Anh E", status: 'Open', revenue: 4200000, totalOrders: 52 },
+        { merchantId: "M003", storeName: "Trà Sữa Koi Thé", ownerName: "Trương Văn F", status: 'Locked', revenue: 8900000, totalOrders: 110 },
+    ]);
     const [isPageLoading, setIsPageLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedMerchantId, setSelectedMerchantId] = useState<string>("all");
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+    const searchParams = useSearchParams();
 
+    useEffect(() => {
+        const mId = searchParams.get('merchantId');
+        if (mId) {
+            setSelectedMerchantId(mId);
+        }
+    }, [searchParams]);
 
-    const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
-
-
-    const [formData, setFormData] = useState<Partial<Dish>>(DEFAULT_DISH);
-
-
-    const [categoryList, setCategoryList] = useState<Category[]>([]);
-
-
-    const [isSavingData, setIsSavingData] = useState(false);
-
-
-    const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-
-
-    const [formErrorMessage, setFormErrorMessage] = useState("");
-
-
-    const [activeEditingId, setActiveEditingId] = useState<string | null>(null);
-
-
-
-
-    useEffect(function onInitialization() {
-        async function loadInitialData() {
-            setIsPageLoading(true);
-
-            await Promise.all([
-                fetchDishesFromServer(),
-                initializeCategories()
-            ]);
-            setIsPageLoading(false);
-        };
-
-        loadInitialData();
+    useEffect(() => {
+        fetchDishesFromServer();
     }, []);
 
-
-
-
-    async function initializeCategories() {
-        setCategoryList(STATIC_CATEGORIES);
-
-
-        if (!formData.categoryId) {
-            setFormData(function (previousData) {
-                return {
-                    ...previousData,
-                    categoryId: STATIC_CATEGORIES[0].categoryid
-                };
-            });
-        }
-    }
-
-
-    async function fetchDishesFromServer() {
+    const fetchDishesFromServer = async () => {
+        setIsPageLoading(true);
         try {
             const mockDishes: Dish[] = [
-                {
-                    id: "d1",
-                    storeName: "ShopeeFood Official",
-                    openTime: "08:00",
-                    closeTime: "22:00",
-                    shopType: "Food",
-                    categoryId: "3",
-                    merchantId: "M001",
-                    foodName: "Bún chả Hà Nội",
-                    originalPrice: "55000",
-                    salePrice: "45000",
-                    foodImage: "/images/bunchahanoi.jpg",
-                    descriptions: "Bún chả truyền thống",
-                    foodStatus: "Available",
-                    rating: 5,
-                    toppingOptions: []
-                },
-                {
-                    id: "d2",
-                    storeName: "ShopeeFood Official",
-                    openTime: "08:00",
-                    closeTime: "22:00",
-                    shopType: "Drink",
-                    categoryId: "2",
-                    merchantId: "M001",
-                    foodName: "Trà sữa Trân trâu",
-                    originalPrice: "40000",
-                    salePrice: "35000",
-                    foodImage: "/images/bunchahanoi.jpg",
-                    descriptions: "Trà sữa đậm vị",
-                    foodStatus: "Available",
-                    rating: 4.5,
-                    toppingOptions: []
-                }
+                { id: "d1", storeName: "ShopeeFood Official", openTime: "08:00", closeTime: "22:00", shopType: "Food", categoryId: "3", merchantId: "M001", foodName: "Bún chả Hà Nội", originalPrice: "55000", salePrice: "45000", foodImage: "/images/bunchahanoi.jpg", descriptions: "Bún chả truyền thống", foodStatus: "Available", rating: 5, toppingOptions: [] },
+                { id: "d2", storeName: "ShopeeFood Official", openTime: "08:00", closeTime: "22:00", shopType: "Drink", categoryId: "2", merchantId: "M001", foodName: "Trà sữa Trân trâu", originalPrice: "40000", salePrice: "35000", foodImage: "/images/bunchahanoi.jpg", descriptions: "Trà sữa đậm vị", foodStatus: "Available", rating: 4.5, toppingOptions: [] },
+                { id: "d3", storeName: "Bún Chả Hà Nội Q.1", openTime: "07:00", closeTime: "21:00", shopType: "Food", categoryId: "12", merchantId: "M002", foodName: "Bún Chả Đặc Biệt", originalPrice: "75000", salePrice: "65000", foodImage: "/images/bunchahanoi.jpg", descriptions: "Nhiều chả hơn", foodStatus: "Available", rating: 4.8, toppingOptions: [] },
+                { id: "d4", storeName: "Trà Sữa Koi Thé", openTime: "09:00", closeTime: "22:00", shopType: "Drink", categoryId: "2", merchantId: "M003", foodName: "Machiato Trà Xanh", originalPrice: "60000", salePrice: "55000", foodImage: "/images/bunchahanoi.jpg", descriptions: "Best seller", foodStatus: "Unavailable", rating: 5, toppingOptions: [] },
             ];
             setDishList(mockDishes);
         } catch (error) {
-            console.error("Error fetching dishes:", error);
+            console.error(error);
         } finally {
             setIsPageLoading(false);
         }
     }
 
-
-
-
-    function handleInputFieldChange(event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-        const { name, value } = event.target;
-        setFormData(function (previousData) {
-            return { ...previousData, [name]: value };
-        });
-    }
-
-
-    function handleImageFileSelection(event: React.ChangeEvent<HTMLInputElement>) {
-        if (event.target.files && event.target.files[0]) {
-            setSelectedImageFile(event.target.files[0]);
-            setFormErrorMessage("");
-        }
-    }
-
-
-    function addNewToppingOption() {
-        setFormData(function (previousData) {
-            const currentToppings = previousData.toppingOptions || [];
-            return {
-                ...previousData,
-                toppingOptions: [...currentToppings, { toppingName: "", price: "" }]
-            };
-        });
-    }
-
-
-    function updateToppingOption(index: number, fieldName: keyof ToppingOption, newValue: string) {
-        const currentToppings = [...(formData.toppingOptions || [])];
-        currentToppings[index] = { ...currentToppings[index], [fieldName]: newValue };
-
-        setFormData(function (previousData) {
-            return { ...previousData, toppingOptions: currentToppings };
-        });
-    }
-
-
-    function removeToppingOption(index: number) {
-        const currentToppings = [...(formData.toppingOptions || [])];
-        currentToppings.splice(index, 1);
-
-        setFormData(function (previousData) {
-            return { ...previousData, toppingOptions: currentToppings };
-        });
-    }
-
-
-    async function handleMenuFormSubmission(event: React.FormEvent) {
-        event.preventDefault();
-        setIsSavingData(true);
-        setFormErrorMessage("");
-
-
-        if (!formData.categoryId) {
-            alert("Vui lòng chọn danh mục cho món ăn!");
-            setIsSavingData(false);
-            return;
-        }
-
-        try {
-            let finalImageUrl = formData.foodImage;
-
-
-            if (selectedImageFile) {
-                finalImageUrl = URL.createObjectURL(selectedImageFile);
+    const toggleShopStatus = (merchantId: string) => {
+        setShops(shops.map(shop => {
+            if (shop.merchantId === merchantId) {
+                const newStatus = shop.status === 'Open' ? 'Locked' : 'Open'
+                // Update all dishes for this merchant
+                setDishList(dishList.map(dish => {
+                    if (dish.merchantId === merchantId) {
+                        return { ...dish, foodStatus: newStatus === 'Locked' ? 'Unavailable' : 'Available' }
+                    }
+                    return dish
+                }))
+                return { ...shop, status: newStatus }
             }
-
-
-            const preparedDishData = {
-                ...formData,
-                foodImage: finalImageUrl
-            };
-
-
-            const apiEndpoint = activeEditingId ? `/api/dishes/${activeEditingId}` : "/api/dishes";
-            const apiMethod = activeEditingId ? "PUT" : "POST";
-
-            const response = await fetch(apiEndpoint, {
-                method: apiMethod,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(preparedDishData)
-            });
-
-            if (response.ok) {
-                const successMessage = activeEditingId ? "Cập nhật món ăn thành công!" : "Lưu món ăn thành công!";
-                alert(successMessage);
-
-
-                await fetchDishesFromServer();
-                setIsModifyDialogOpen(false);
-                setFormData(DEFAULT_DISH);
-                setActiveEditingId(null);
-                setSelectedImageFile(null);
-            } else {
-                const errorResponse = await response.json();
-                alert(`Lỗi khi lưu món ăn: ${errorResponse.error || "Không xác định"}`);
-            }
-        } catch (error: any) {
-            console.error("Critical error saving dish:", error);
-            alert(`Đã xảy ra lỗi: ${error.message || "Không thể kết nối với máy chủ"}`);
-        } finally {
-            setIsSavingData(false);
-        }
+            return shop
+        }))
     }
 
+    const filteredDishes = dishList.filter(dish => {
+        const matchesSearch = dish.foodName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            dish.storeName.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesMerchant = selectedMerchantId === "all" || dish.merchantId === selectedMerchantId;
+        return matchesSearch && matchesMerchant;
+    });
 
-    async function updateDishAvailabilityStatus(dishId: string, newStatusValue: string) {
-        try {
-            const response = await fetch(`/api/dishes/${dishId}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ foodStatus: newStatusValue })
-            });
+    const totalPages = Math.ceil(filteredDishes.length / ITEMS_PER_PAGE);
+    const paginatedDishes = filteredDishes.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
 
-            if (response.ok) {
-
-                setDishList(function (previousList) {
-                    return previousList.map(function (dish) {
-                        if (dish.id === dishId) {
-                            return { ...dish, foodStatus: newStatusValue as any };
-                        } else {
-                            return dish;
-                        }
-                    });
-                });
-            } else {
-                const errorResponse = await response.json();
-                alert(`Lỗi: ${errorResponse.error || "Không thể cập nhật trạng thái"}`);
-            }
-        } catch (error) {
-            console.error("Error updating dish status:", error);
-            alert("Đã xảy ra lỗi khi kết nối với máy chủ");
-        }
-    }
-
-
-    async function softDeleteDish(dishId: string) {
-        await updateDishAvailabilityStatus(dishId, 'Unavailable');
-    }
+    const selectedShop = shops.find(s => s.merchantId === selectedMerchantId);
 
     return (
-        <div className="space-y-6">
-            { }
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Menu Management</h1>
-                    <p className="text-gray-500">Manage your restaurant menu items</p>
+        <div className="space-y-8 font-sans">
+            <div className="flex justify-between items-center">
+                <div className="space-y-1">
+                    <h3 className="text-2xl font-black text-gray-900 tracking-tight">Quản lý Thực đơn & Cửa hàng</h3>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Giám sát món ăn, trạng thái quán và doanh thu</p>
                 </div>
-
-                { }
-                <Dialog open={isModifyDialogOpen} onOpenChange={setIsModifyDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button
-                            className="bg-[#ee4d2d] hover:bg-[#d73211] text-white shadow-md shadow-red-100"
-                            onClick={function () {
-                                setFormData(DEFAULT_DISH);
-                                setActiveEditingId(null);
-                            }}
-                        >
-                            <Plus className="mr-2 h-4 w-4" /> Add New Dish
-                        </Button>
-                    </DialogTrigger>
-
-                    <DialogContent className="sm:max-w-[700px] overflow-y-auto max-h-[90vh]">
-                        <DialogHeader>
-                            <DialogTitle>{activeEditingId ? "Edit Dish" : "Add New Dish"}</DialogTitle>
-                        </DialogHeader>
-
-                        <form onSubmit={handleMenuFormSubmission} className="grid gap-6 py-4">
-                            <div className="grid gap-4">
-                                { }
-                                <div className="grid gap-2">
-                                    <Label htmlFor="foodName">Dish Name</Label>
-                                    <Input
-                                        id="foodName"
-                                        name="foodName"
-                                        value={formData.foodName}
-                                        onChange={handleInputFieldChange}
-                                        required
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="descriptions">Description</Label>
-                                    <Input
-                                        id="descriptions"
-                                        name="descriptions"
-                                        value={formData.descriptions}
-                                        onChange={handleInputFieldChange}
-                                        required
-                                    />
-                                </div>
-
-                                { }
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="originalPrice">Original Price</Label>
-                                        <Input
-                                            id="originalPrice"
-                                            name="originalPrice"
-                                            type="number"
-                                            value={formData.originalPrice}
-                                            onChange={handleInputFieldChange}
-                                            placeholder="50000"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="salePrice">Sale Price (Optional)</Label>
-                                        <Input
-                                            id="salePrice"
-                                            name="salePrice"
-                                            type="number"
-                                            value={formData.salePrice}
-                                            onChange={handleInputFieldChange}
-                                            placeholder="45000"
-                                        />
-                                    </div>
-                                </div>
-
-                                { }
-                                <div className="grid gap-2">
-                                    <Label htmlFor="foodImage">Dish Image</Label>
-                                    <div className="flex flex-col gap-2">
-                                        <div className="flex items-center gap-2">
-                                            <Input
-                                                id="foodImage"
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageFileSelection}
-                                                className="cursor-pointer file:cursor-pointer file:bg-orange-50 file:text-orange-700 file:border-0 file:rounded-md file:px-2 file:py-1 file:mr-2 hover:file:bg-orange-100"
-                                            />
-                                            {selectedImageFile && (
-                                                <span className="text-xs text-green-600 block shrink-0 flex items-center gap-1">
-                                                    <Upload className="w-3 h-3" /> Selected
-                                                </span>
-                                            )}
-                                        </div>
-                                        {formErrorMessage && <p className="text-xs text-red-500">{formErrorMessage}</p>}
-                                        {!selectedImageFile && formData.foodImage && (
-                                            <p className="text-xs text-gray-400 mt-1 truncate">Current: {formData.foodImage}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            { }
-                            <div className="space-y-3">
-                                <Label className="text-base font-semibold text-gray-700 uppercase tracking-wider">Danh Mục</Label>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {STATIC_CATEGORIES.map(function (category) {
-                                        const isSelected = formData.categoryId === category.categoryid;
-                                        const Icon = CATEGORY_ICON_MAP[category.categoryname] || CATEGORY_ICON_MAP["Default"];
-
-                                        return (
-                                            <div
-                                                key={category.categoryid}
-                                                onClick={function () {
-                                                    setFormData(function (previousData) {
-                                                        return { ...previousData, categoryId: category.categoryid };
-                                                    });
-                                                }}
-                                                className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${isSelected
-                                                    ? 'bg-red-50 border-red-500 text-red-700'
-                                                    : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
-                                                    }`}
-                                            >
-                                                <div className={`p-1.5 rounded-full ${isSelected ? 'bg-red-100' : 'bg-gray-100'}`}>
-                                                    <Icon className={`h-4 w-4 ${isSelected ? 'text-red-500' : 'text-gray-500'}`} />
-                                                </div>
-                                                <span className="text-xs font-semibold truncate">{category.categoryname}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            { }
-                            <div className="grid gap-4">
-                                <div className="flex items-center justify-between border-b pb-2">
-                                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                                        <Plus className="h-4 w-4" /> Topping Options
-                                    </h3>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={addNewToppingOption}
-                                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                                    >
-                                        <Plus className="h-3 w-3 mr-1" /> Add Topping
-                                    </Button>
-                                </div>
-
-                                {formData.toppingOptions?.map(function (topping, index) {
-                                    return (
-                                        <div key={index} className="flex gap-3 items-end p-3 bg-gray-50 rounded-lg">
-                                            <div className="flex-[2] space-y-1">
-                                                <Label className="text-xs">Topping Name</Label>
-                                                <Input
-                                                    value={topping.toppingName}
-                                                    onChange={function (e) { updateToppingOption(index, 'toppingName', e.target.value); }}
-                                                    placeholder="Extra Cheese"
-                                                    className="h-9 bg-white"
-                                                />
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <Label className="text-xs">Price</Label>
-                                                <Input
-                                                    value={topping.price}
-                                                    onChange={function (e) { updateToppingOption(index, 'price', e.target.value); }}
-                                                    placeholder="5000"
-                                                    className="h-9 bg-white"
-                                                    type="number"
-                                                />
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={function () { removeToppingOption(index); }}
-                                                className="h-9 w-9 text-red-500 hover:bg-red-50 hover:text-red-700"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            <DialogFooter className="mt-6 sticky bottom-0 bg-white pt-2 border-t">
-                                <Button
-                                    type="submit"
-                                    disabled={isSavingData}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
-                                >
-                                    {isSavingData ? "Saving..." : (activeEditingId ? "Update Dish" : "Save Dish")}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                <div className="flex gap-3">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                            placeholder="Tìm món hoặc quán..."
+                            className="pl-10 h-11 w-64 rounded-xl border-gray-100 focus:border-[#ee4d2d]"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
             </div>
 
-            { }
-            <Card className="border-gray-100 shadow-sm">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <CardTitle>Dishes List</CardTitle>
-                        { }
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                {/* Shops Sidebar */}
+                <div className="lg:col-span-1 space-y-4">
+                    <div className="flex items-center justify-between px-2">
+                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Danh sách Quán</h4>
+                        <span className="text-[10px] font-bold text-gray-400">{shops.length} đối tác</span>
                     </div>
-                </CardHeader>
+                    <div className="space-y-2">
+                        <button
+                            onClick={() => setSelectedMerchantId("all")}
+                            className={`w-full text-left px-4 py-4 rounded-3xl transition-all font-bold text-sm flex items-center justify-between group ${selectedMerchantId === "all" ? "bg-[#ee4d2d] text-white shadow-lg shadow-red-100" : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-100"}`}
+                        >
+                            <div className="flex items-center gap-3">
+                                <LayoutGrid className="h-4 w-4" />
+                                <span>Tất cả quán</span>
+                            </div>
+                            <ChevronRight className={`h-4 w-4 transition-transform ${selectedMerchantId === "all" ? "translate-x-1" : "text-gray-300"}`} />
+                        </button>
+                        {shops.map(shop => (
+                            <div key={shop.merchantId} className={`group relative p-4 rounded-3xl border transition-all ${selectedMerchantId === shop.merchantId ? "border-[#ee4d2d] bg-orange-50/50" : "border-gray-100 bg-white hover:border-orange-200"}`}>
+                                <div
+                                    className="cursor-pointer"
+                                    onClick={() => setSelectedMerchantId(shop.merchantId)}
+                                >
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div className="space-y-0.5">
+                                            <p className={`font-black text-sm truncate pr-8 ${selectedMerchantId === shop.merchantId ? "text-[#ee4d2d]" : "text-gray-900"}`}>{shop.storeName}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">#{shop.merchantId}</p>
+                                                <span className="text-[10px] text-gray-300">•</span>
+                                                <p className="text-[10px] text-gray-400 font-bold italic truncate max-w-[100px]">{shop.ownerName}</p>
+                                            </div>
+                                        </div>
+                                        <span className={`h-2.5 w-2.5 rounded-full shrink-0 mt-1 shadow-sm ${shop.status === 'Open' ? "bg-green-500 ring-4 ring-green-50" : "bg-red-500 ring-4 ring-red-50"}`}></span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-3">
+                                        <div className="flex items-center gap-1.5">
+                                            <DollarSign className={`h-3 w-3 ${selectedMerchantId === shop.merchantId ? "text-[#ee4d2d]" : "text-gray-400"}`} />
+                                            <p className="text-xs font-black text-gray-700">{shop.revenue.toLocaleString()}₫</p>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-gray-400">{shop.totalOrders} đơn</p>
+                                    </div>
+                                </div>
+                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={`h-8 w-8 rounded-xl ${shop.status === 'Open' ? "hover:bg-red-100 text-red-500" : "hover:bg-green-100 text-green-500"}`}
+                                        onClick={(e) => { e.stopPropagation(); toggleShopStatus(shop.merchantId); }}
+                                        title={shop.status === 'Open' ? "Khóa quán" : "Mở khóa quán"}
+                                    >
+                                        {shop.status === 'Open' ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
 
-                <CardContent>
-                    {isPageLoading ? (
-                        <div className="text-center py-8 text-gray-500 animate-pulse">
-                            Loading your menu items...
-                        </div>
-                    ) : (
-                        <div className="rounded-lg border border-gray-100 overflow-hidden">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-100">
-                                    <tr>
-                                        <th className="p-4">Image</th>
-                                        <th className="p-4">Name</th>
-                                        <th className="p-4">Category</th>
-                                        <th className="p-4">Price</th>
-                                        <th className="p-4">Status</th>
-                                        <th className="p-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
+                {/* Dishes Main View */}
+                <div className="lg:col-span-3 space-y-6">
+                    {/* Shop Performance Summary (only when a specific shop is selected) */}
+                    <Suspense fallback={<div className="h-32 bg-gray-50 animate-pulse rounded-[32px]"></div>}>
+                        {selectedShop && (
+                            <div className="grid grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                <Card className="rounded-[32px] border-none bg-orange-50 shadow-none p-6">
+                                    <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest mb-1">Chủ quán</p>
+                                    <h4 className="text-xl font-black text-gray-900">{selectedShop.ownerName}</h4>
+                                </Card>
+                                <Card className="rounded-[32px] border-none bg-gray-50 shadow-none p-6 text-center">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Doanh thu</p>
+                                    <h4 className="text-xl font-black text-[#ee4d2d]">{selectedShop.revenue.toLocaleString()}₫</h4>
+                                </Card>
+                                <Card className="rounded-[32px] border-none bg-blue-50 shadow-none p-6 text-center">
+                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Đơn hàng</p>
+                                    <h4 className="text-xl font-black text-blue-600">{selectedShop.totalOrders}</h4>
+                                </Card>
+                                <Card className="rounded-[32px] border-none bg-green-50 shadow-none p-6 text-center">
+                                    <p className="text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">Trạng thái</p>
+                                    <h4 className={`text-xl font-black ${selectedShop.status === 'Open' ? 'text-green-600' : 'text-red-600'}`}>
+                                        {selectedShop.status === 'Open' ? 'Mở' : 'Khóa'}
+                                    </h4>
+                                </Card>
+                            </div>
+                        )}
+                    </Suspense>
 
-                                <tbody className="divide-y divide-gray-100">
-                                    {dishList.map(function (dish) {
-                                        return (
+                    <Card className="rounded-[40px] border-gray-100 shadow-sm overflow-hidden">
+                        <CardHeader className="bg-gray-50/50 border-b border-gray-100 px-6 py-4">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-sm font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Utensils className="h-4 w-4" />
+                                    Danh sách món ăn
+                                </CardTitle>
+                                <span className="text-xs font-bold text-[#ee4d2d] bg-orange-100 px-2 py-1 rounded-lg">
+                                    {filteredDishes.length} món
+                                </span>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-gray-50/30 border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Món ăn</th>
+                                            <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Cửa hàng</th>
+                                            <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Giá</th>
+                                            <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Trạng thái</th>
+                                            <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest text-right">Tác vụ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {paginatedDishes.map(dish => (
                                             <tr key={dish.id} className="hover:bg-gray-50/50 transition-colors">
-                                                { }
-                                                <td className="p-4">
-                                                    <img
-                                                        src={dish.foodImage}
-                                                        alt={dish.foodName}
-                                                        className="w-12 h-12 rounded-lg object-cover bg-gray-100 shadow-sm"
-                                                    />
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <img src={dish.foodImage} alt={dish.foodName} className="h-10 w-10 rounded-xl object-cover border border-gray-100" />
+                                                        <div>
+                                                            <p className="font-bold text-gray-900">{dish.foodName}</p>
+                                                            <p className="text-[10px] text-gray-400 font-medium line-clamp-1">{dish.descriptions}</p>
+                                                        </div>
+                                                    </div>
                                                 </td>
-
-                                                { }
-                                                <td className="p-4">
-                                                    <div className="font-semibold text-gray-900">{dish.foodName}</div>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600">
+                                                        <Store className="h-3 w-3 text-orange-400" />
+                                                        {dish.storeName}
+                                                    </div>
                                                 </td>
-
-                                                { }
-                                                <td className="p-4">
-                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold 
-                                                        ${dish.shopType === "Food" ? "bg-orange-50 text-[#ee4d2d]" : "bg-blue-50 text-blue-700"}`}>
-                                                        {dish.shopType || "Food"}
+                                                <td className="px-6 py-4">
+                                                    <div className="space-y-0.5">
+                                                        <p className="font-black text-[#ee4d2d]">{Number(dish.salePrice || dish.originalPrice).toLocaleString()}đ</p>
+                                                        {dish.salePrice && <p className="text-[10px] text-gray-400 line-through">{Number(dish.originalPrice).toLocaleString()}đ</p>}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${dish.foodStatus === 'Available' ? "bg-green-50 text-green-600" :
+                                                        dish.foodStatus === 'Out of Stock' ? "bg-yellow-50 text-yellow-600" : "bg-red-50 text-red-600"
+                                                        }`}>
+                                                        {dish.foodStatus === 'Available' ? 'Đang bán' : dish.foodStatus === 'Out of Stock' ? 'Tạm hết' : 'Ngừng bán'}
                                                     </span>
                                                 </td>
-
-                                                { }
-                                                <td className="p-4 text-gray-600 font-medium">
-                                                    {dish.salePrice ? (
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[#ee4d2d]">
-                                                                {Number(dish.salePrice).toLocaleString()}đ
-                                                            </span>
-                                                            <span className="text-xs line-through text-gray-400">
-                                                                {Number(dish.originalPrice).toLocaleString()}đ
-                                                            </span>
-                                                        </div>
-                                                    ) : (
-                                                        <span>{Number(dish.originalPrice).toLocaleString()}đ</span>
-                                                    )}
-                                                </td>
-
-                                                { }
-                                                <td className="p-4">
-                                                    <select
-                                                        value={dish.foodStatus}
-                                                        onChange={function (e) { updateDishAvailabilityStatus(dish.id, e.target.value); }}
-                                                        className={`text-xs font-semibold rounded-full px-3 py-1.5 border border-gray-200 focus:ring-2 focus:ring-orange-200 cursor-pointer outline-none transition-all
-                                                            ${dish.foodStatus === "Available" ? "bg-green-50 text-green-700 border-green-100" :
-                                                                dish.foodStatus === "Out of Stock" ? "bg-yellow-50 text-yellow-700 border-yellow-100" : "bg-red-50 text-red-700 border-red-100"}`}
-                                                    >
-                                                        <option value="Available">Còn bán</option>
-                                                        <option value="Out of Stock">Hết hàng</option>
-                                                        <option value="Unavailable">Ngừng bán</option>
-                                                    </select>
-                                                </td>
-
-                                                { }
-                                                <td className="p-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-9 w-9 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                            onClick={function () {
-                                                                setFormData(dish);
-                                                                setActiveEditingId(dish.id);
-                                                                setIsModifyDialogOpen(true);
-                                                            }}
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-9 w-9 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                            onClick={function () {
-                                                                if (confirm(`Bạn có chắc muốn ngừng bán món "${dish.foodName}"?`)) {
-                                                                    softDeleteDish(dish.id);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit className="h-4 w-4" /></Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="h-4 w-4" /></Button>
                                                     </div>
                                                 </td>
                                             </tr>
-                                        );
-                                    })}
-
-                                    { }
-                                    {dishList.length === 0 && (
-                                        <tr>
-                                            <td colSpan={6} className="p-12 text-center text-gray-500">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <Utensils className="h-8 w-8 text-gray-200" />
-                                                    <p>No dishes found in your menu.</p>
-                                                    <p className="text-xs">Add your first dish to get started!</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {filteredDishes.length === 0 && (
+                                    <div className="py-12 text-center text-gray-400 italic text-sm">
+                                        Không tìm thấy món ăn nào phù hợp
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
+            </div>
         </div>
-    );
+    )
 }

@@ -10,26 +10,26 @@ import { Suspense } from "react";
 
 
 function HomeContent() {
-  
+
   const urlSearchParams = useSearchParams();
   const activeSearchQuery = urlSearchParams.get("search") || "";
 
-  
+
   function getMatchingProducts() {
     return products.filter(function checkProductMatch(productItem) {
       const lowerCasedProductName = productItem.name.toLowerCase();
       const lowerCasedSearchQuery = activeSearchQuery.toLowerCase();
 
-      
+
       const isNameMatched = lowerCasedProductName.includes(lowerCasedSearchQuery);
       return isNameMatched;
     });
   }
 
-  
+
   const visibleProductsList = getMatchingProducts();
 
-  
+
   function renderProductCards() {
     return visibleProductsList.map(function createProductCard(productItem) {
       return (
@@ -41,28 +41,28 @@ function HomeContent() {
     });
   }
 
-  
+
   const productGridElements = renderProductCards();
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col font-sans">
-      {}
+      { }
       <Navbar />
 
       <div className="container mx-auto py-12 px-4 flex-grow">
-        {}
+        { }
         <HeroSlider />
 
-        {}
+        { }
         <CategoryList />
 
-        {}
+        { }
         {visibleProductsList.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-10">
             {productGridElements}
           </div>
         ) : (
-          
+
           <div className="text-center py-20 bg-white rounded-3xl border border-orange-100 shadow-md mt-10 max-w-2xl mx-auto">
             <div className="mb-6 flex justify-center">
               <div className="bg-orange-50 w-24 h-24 rounded-full flex items-center justify-center animate-bounce">

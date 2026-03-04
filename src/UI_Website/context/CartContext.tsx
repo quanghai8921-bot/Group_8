@@ -1,12 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
 
-
-export const parsePrice = function (priceStr: string) {
-    return parseInt(priceStr.replace(/\D/g, ""), 10);
-};
-
+// Types
+export interface ToppingOption {
+    toppingName: string;
+    price: string;
+}
 
 export type CartItem = {
     id: number;
@@ -14,26 +14,35 @@ export type CartItem = {
     price: string;
     image: string;
     quantity: number;
+    selectedToppings?: ToppingOption[];
 };
 
 type CartContextType = {
     cart: CartItem[];
-    addToCart: (product: any, quantity: number) => void;
-    removeFromCart: (id: number) => void;
-    updateQuantity: (id: number, quantity: number) => void;
+    addToCart: (product: any, quantity: number, selectedToppings?: ToppingOption[]) => void;
+    removeFromCart: (tempId: string) => void;
+    updateQuantity: (tempId: string, quantity: number) => void;
     clearCart: () => void;
     totalItems: number;
     totalPrice: number;
 };
 
+// Utilities
+export const parsePrice = (priceStr: string) => {
+    return parseInt(priceStr.replace(/\D/g, ""), 10);
+};
+
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+/**
+ * Provider quản lý trạng thái giỏ hàng toàn ứng dụng
+ */
+export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [isMounted, setIsMounted] = useState(false);
 
-    
-    useEffect(function () {
+    // Khởi tạo từ Local Storage
+    useEffect(() => {
         setIsMounted(true);
         const savedCart = localStorage.getItem("shopping-cart");
         if (savedCart) {
@@ -45,63 +54,67 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
-    
-    useEffect(function () {
-        if (isMounted === true) {
+    // Lưu vào Local Storage khi có thay đổi
+    useEffect(() => {
+        if (isMounted) {
             localStorage.setItem("shopping-cart", JSON.stringify(cart));
         }
     }, [cart, isMounted]);
 
-    const addToCart = function (product: any, quantity: number) {
-        setCart(function (prev) {
-            const existing = prev.find(function (item) {
-                return item.id === product.id;
-            });
+    // Tạo key duy nhất để phân biệt các sản phẩm khác topping
+    const generateItemKey = (productId: number, toppings?: ToppingOption[]) => {
+        if (!toppings || toppings.length === 0) return `${productId}`;
+        const toppingStr = toppings.map(t => t.toppingName).sort().join(",");
+        return `${productId}-${toppingStr}`;
+    };
 
-            if (existing) {
-                return prev.map(function (item) {
-                    if (item.id === product.id) {
-                        return { ...item, quantity: item.quantity + quantity };
-                    }
-                    return item;
-                });
+    const addToCart = (product: any, quantity: number, selectedToppings?: ToppingOption[]) => {
+        setCart(prev => {
+            const newItemKey = generateItemKey(product.id, selectedToppings);
+            const existingIndex = prev.findIndex(item =>
+                generateItemKey(item.id, item.selectedToppings) === newItemKey
+            );
+
+            if (existingIndex !== -1) {
+                return prev.map((item, index) =>
+                    index === existingIndex
+                        ? { ...item, quantity: item.quantity + quantity }
+                        : item
+                );
             }
-            return [...prev, { ...product, quantity }];
+            return [...prev, { ...product, quantity, selectedToppings }];
         });
     };
 
-    const removeFromCart = function (id: number) {
-        setCart(function (prev) {
-            return prev.filter(function (item) {
-                return item.id !== id;
-            });
-        });
+    const removeFromCart = (tempId: string) => {
+        setCart(prev => prev.filter(item =>
+            generateItemKey(item.id, item.selectedToppings) !== tempId
+        ));
     };
 
-    const updateQuantity = function (id: number, quantity: number) {
+    const updateQuantity = (tempId: string, quantity: number) => {
         if (quantity < 1) return;
-        setCart(function (prev) {
-            return prev.map(function (item) {
-                if (item.id === id) {
-                    return { ...item, quantity };
-                }
-                return item;
-            });
-        });
+        setCart(prev => prev.map(item =>
+            generateItemKey(item.id, item.selectedToppings) === tempId
+                ? { ...item, quantity }
+                : item
+        ));
     };
 
-    const clearCart = function () {
-        setCart([]);
-    };
+    const clearCart = () => setCart([]);
 
-    
-    const totalItems = cart.reduce(function (sum, item) {
-        return sum + item.quantity;
-    }, 0);
+    // Derived State
+    const totalItems = useMemo(() =>
+        cart.reduce((sum, item) => sum + item.quantity, 0),
+        [cart]);
 
-    const totalPrice = cart.reduce(function (sum, item) {
-        return sum + parsePrice(item.price) * item.quantity;
-    }, 0);
+    const totalPrice = useMemo(() =>
+        cart.reduce((sum, item) => {
+            const basePrice = parsePrice(item.price);
+            const toppingPrice = item.selectedToppings?.reduce((tSum, t) => tSum + parsePrice(t.price), 0) || 0;
+            return sum + (basePrice + toppingPrice) * item.quantity;
+        }, 0),
+        [cart]);
 
     return (
         <CartContext.Provider
@@ -118,9 +131,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             {children}
         </CartContext.Provider>
     );
-}
+};
 
-export const useCart = function () {
+export const useCart = () => {
     const context = useContext(CartContext);
     if (context === undefined) {
         throw new Error("useCart must be used within a CartProvider");

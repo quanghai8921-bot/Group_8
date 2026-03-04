@@ -6,7 +6,10 @@ import java.util.List;
 
 public interface FoodService {
     List<FoodItemDTO> getFoodByMerchant(String merchantId);
+
     List<FoodItemDTO> getFoodByCategory(String categoryId);
+
     FoodItemDTO getFoodById(String foodId);
+
     List<FoodItemDTO> getAllAvailableFood();
 }
