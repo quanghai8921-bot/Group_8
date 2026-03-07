@@ -291,7 +291,7 @@ export default function MenuManagement() {
                                     <thead className="bg-gray-50/30 border-b border-gray-100">
                                         <tr>
                                             <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Món ăn</th>
-                                            <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Cửa hàng</th>
+
                                             <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Giá</th>
                                             <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest">Trạng thái</th>
                                             <th className="px-6 py-4 font-black text-gray-400 text-[10px] uppercase tracking-widest text-right">Tác vụ</th>
@@ -309,12 +309,7 @@ export default function MenuManagement() {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600">
-                                                        <Store className="h-3 w-3 text-orange-400" />
-                                                        {dish.storeName}
-                                                    </div>
-                                                </td>
+
                                                 <td className="px-6 py-4">
                                                     <div className="space-y-0.5">
                                                         <p className="font-black text-[#ee4d2d]">{Number(dish.salePrice || dish.originalPrice).toLocaleString()}đ</p>

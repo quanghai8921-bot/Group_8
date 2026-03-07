@@ -7,18 +7,13 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Navbar() {
     const { totalItems } = useCart();
     const router = useRouter();
     const auth = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
 
     const isLoggedIn = auth.isAuthenticated;
 
@@ -43,6 +38,8 @@ export default function Navbar() {
         }
     };
 
+
+
     return (
         <nav className="flex items-center justify-between p-4 bg-white shadow-md sticky top-0 z-50 gap-4">
             { }
@@ -58,8 +55,8 @@ export default function Navbar() {
             </Link>
 
             { }
-            <div className="hidden md:flex flex-1 max-w-xl relative" suppressHydrationWarning>
-                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none" suppressHydrationWarning>
+            <div className="hidden md:flex flex-1 max-w-xl relative">
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <Search className="w-5 h-5 text-gray-400" />
                 </div>
                 <input
@@ -68,7 +65,6 @@ export default function Navbar() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-all"
                     value={searchQuery}
                     onChange={handleSearch}
-                    suppressHydrationWarning
                 />
             </div>
 
@@ -82,7 +78,7 @@ export default function Navbar() {
                 <Link href="/cart" className="relative" onClick={handleCartClick}>
                     <Button variant="ghost" size="icon" className="rounded-full relative">
                         <ShoppingCart className="w-6 h-6" />
-                        {mounted && totalItems > 0 && (
+                        {totalItems > 0 && (
                             <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white animate-in zoom-in">
                                 {totalItems}
                             </span>
@@ -92,10 +88,26 @@ export default function Navbar() {
 
                 { }
                 <div className="hidden sm:flex gap-2">
-                    {!mounted ? null : isLoggedIn ? (
-                        <Button variant="outline" className="rounded-full px-6 border-red-500 text-red-500 hover:bg-red-50" onClick={handleLogout}>
-                            Đăng xuất
-                        </Button>
+                    {isLoggedIn ? (
+                        <div className="relative group">
+                            <Button variant="outline" className="rounded-full px-6 border-[#ee4d2d] text-[#ee4d2d] hover:bg-orange-50">
+                                Tài khoản
+                            </Button>
+                            <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top-right group-hover:scale-100 scale-95">
+                                <Link href="/register/driver" className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#ee4d2d] transition-colors border-b border-gray-50">
+                                    Đăng ký làm tài xế
+                                </Link>
+                                <Link href="/register/merchant" className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#ee4d2d] transition-colors border-b border-gray-50">
+                                    Đăng ký làm chủ quán
+                                </Link>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-4 py-3 text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
+                                >
+                                    Đăng xuất
+                                </button>
+                            </div>
+                        </div>
                     ) : (
                         <>
                             <Link href="/login">

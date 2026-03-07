@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image";
+import { registerUser, handleApiError } from "@/lib/apiClient";
+import { AxiosError } from "axios";
 
 type RegisterForm = {
   fullName: string;
@@ -29,7 +31,9 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
 
-  const [registrationErrorMessage, setRegistrationErrorMessage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   function updateFormField(fieldName: keyof RegisterForm, newValue: string) {
     setRegistrationFormData(function (previousState) {
@@ -40,7 +44,7 @@ export default function RegisterPage() {
     });
   }
 
-  function processUserRegistration(event: React.FormEvent) {
+  const processUserRegistration = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const isAnyFieldEmpty = !registrationFormData.fullName ||
@@ -51,25 +55,44 @@ export default function RegisterPage() {
       !registrationFormData.password ||
       !registrationFormData.confirmPassword;
 
-    if (isAnyFieldEmpty === true) {
-      setRegistrationErrorMessage("Vui lòng điền tất cả các trường thông tin để đăng ký!");
+    if (isAnyFieldEmpty) {
+      setError("Vui lòng điền tất cả các trường thông tin để đăng ký!");
       return;
     }
 
     const phoneRegex = /^\d{10}$/;
-    if (phoneRegex.test(registrationFormData.phoneNumber) === false) {
-      setRegistrationErrorMessage("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số!");
+    if (!phoneRegex.test(registrationFormData.phoneNumber)) {
+      setError("Số điện thoại không hợp lệ. Vui lòng nhập đúng 10 chữ số!");
       return;
     }
 
     if (registrationFormData.password !== registrationFormData.confirmPassword) {
-      setRegistrationErrorMessage("Mật khẩu nhập lại không khớp với mật khẩu đã chọn!");
+      setError("Mật khẩu nhập lại không khớp với mật khẩu đã chọn!");
       return;
     }
 
-    setRegistrationErrorMessage("");
-    alert("Chúc mừng! Bạn đã đăng ký tài khoản ShopeeFood thành công (Chế độ Demo).");
-  }
+    setError("");
+    setLoading(true);
+
+    try {
+      await registerUser({
+        fullName: registrationFormData.fullName,
+        email: registrationFormData.email,
+        password: registrationFormData.password,
+        phoneNumber: registrationFormData.phoneNumber,
+        birthDate: registrationFormData.birthDate,
+      });
+
+      // Redirect to login page after successful registration
+      router.push("/login");
+    } catch (err) {
+      const axiosError = err as AxiosError;
+      const errorData = handleApiError(axiosError);
+      setError(errorData.message || "Đăng ký thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   function handleSocialConnect(serviceName: string) {
     alert("Kết nối với " + serviceName + " đang được phát triển. Vui lòng đăng ký thủ công.");
@@ -117,12 +140,12 @@ export default function RegisterPage() {
                 Tạo tài khoản mới
               </h2>
 
-              {registrationErrorMessage !== "" && (
+              {error !== "" && (
                 <div className="bg-red-50 border-2 border-red-100 p-4 mb-8 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-bold animate-in slide-in-from-top duration-300">
                   <svg viewBox="0 0 16 16" className="w-5 h-5 fill-current shrink-0">
                     <path d="M8 0C3.6 0 0 3.6 0 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm0 12c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zm1-3H7V4h2v5z" />
                   </svg>
-                  {registrationErrorMessage}
+                  {error}
                 </div>
               )}
 
@@ -204,9 +227,10 @@ export default function RegisterPage() {
 
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-[#ee4d2d] hover:bg-[#d73211] text-white text-lg font-black rounded-2xl uppercase tracking-widest shadow-xl shadow-orange-100 transition-all hover:scale-[1.01] active:scale-95 mt-6"
+                  disabled={loading}
+                  className="w-full h-14 bg-[#ee4d2d] hover:bg-[#d73211] text-white text-lg font-black rounded-2xl uppercase tracking-widest shadow-xl shadow-orange-100 transition-all hover:scale-[1.01] active:scale-95 mt-6 disabled:opacity-50"
                 >
-                  Đăng ký ngay
+                  {loading ? "Đang đăng ký..." : "Đăng ký ngay"}
                 </Button>
               </form>
 
@@ -219,6 +243,7 @@ export default function RegisterPage() {
               <div className="mt-8 grid grid-cols-2 gap-4">
                 <Button
                   variant="outline"
+                  type="button"
                   className="h-12 rounded-2xl border-2 border-gray-50 hover:bg-gray-50 gap-3 font-bold transition-all"
                   onClick={function () { handleSocialConnect("Facebook"); }}
                 >
@@ -227,6 +252,7 @@ export default function RegisterPage() {
                 </Button>
                 <Button
                   variant="outline"
+                  type="button"
                   className="h-12 rounded-2xl border-2 border-gray-50 hover:bg-gray-50 gap-3 font-bold transition-all"
                   onClick={function () { handleSocialConnect("Google"); }}
                 >
@@ -239,6 +265,16 @@ export default function RegisterPage() {
                 Bạn đã có tài khoản ShopeeFood?{" "}
                 <Link href="/login" className="text-[#ee4d2d] font-black hover:underline ml-1">Đăng nhập</Link>
               </p>
+
+              <div className="mt-6 p-4 bg-orange-50 rounded-xl border border-orange-100/50 text-center">
+                <p className="text-sm font-medium text-gray-600">
+                  Bạn muốn trở thành Đối tác Tài xế?{" "}
+                  <Link href="/register/driver" className="text-[#ee4d2d] font-black hover:underline ml-1 inline-flex items-center gap-1">
+                    Đăng ký tại đây
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="m9 18 6-6-6-6" /></svg>
+                  </Link>
+                </p>
+              </div>
             </div>
           </div>
         </div>
