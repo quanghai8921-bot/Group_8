@@ -1,0 +1,40 @@
+[
+  {
+    "OrderId": "ORD-8821",
+    "UserId": "U001",
+    "MerchantId": "M001",
+    "DriverId": "D001",
+    "VoucherId": null,
+    "OrderDate": "2026-03-09T10:30:00Z",
+    "FoodAmount": 145000,
+    "ShippingFee": 15000,
+    "FoodDiscount": 0,
+    "ShipDiscount": 0,
+    "FinalAmount": 160000,
+    "OrderStatus": 1,
+    "DeliveryAddress": "Số 1 Lý Tự Trọng, Q.1",
+    "FullName": "Nguyễn Văn A",
+    "customerEmail": "a.nguyen@example.com",
+    "OrderItemsSummary": "Bún chả Hà Nội (x2), Nem cua bể",
+    "PaymentMethod": "Tiền mặt"
+  },
+  {
+    "OrderId": "ORD-9932",
+    "UserId": "U003",
+    "MerchantId": "M001",
+    "DriverId": "D002",
+    "VoucherId": "V001",
+    "OrderDate": "2026-03-09T11:15:00Z",
+    "FoodAmount": 85000,
+    "ShippingFee": 15000,
+    "FoodDiscount": 10000,
+    "ShipDiscount": 0,
+    "FinalAmount": 90000,
+    "OrderStatus": 1,
+    "DeliveryAddress": "Số 10 Hai Bà Trưng, Q.3",
+    "FullName": "Trần Thị B",
+    "customerEmail": "b.tran@example.com",
+    "OrderItemsSummary": "Phở bò tái lăn, Quẩy giòn (x5)",
+    "PaymentMethod": "Tiền mặt"
+  }
+]

@@ -4,122 +4,61 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Plus,
-  Edit,
-  Trash2,
   Utensils,
-  Coffee,
-  Pizza,
-  IceCream,
-  Soup,
-  Box,
-  LayoutGrid,
-  Upload,
-  Flame,
-  Leaf,
-  Fish,
-  Store,
   Lock,
   Unlock,
   Search,
-  ChevronRight,
   DollarSign,
 } from "lucide-react";
+import { getMockDishes, getMockShops } from "@/lib/apiClient";
 
 interface ToppingOption {
-  toppingName: string;
-  price: string;
+  ToppingId: string;
+  ToppingName: string;
+  Price: number;
 }
 
 interface Category {
-  categoryid: string;
-  categoryname: string;
+  CategoryId: string;
+  CategoryName: string;
 }
 
 interface Dish {
-  id: string;
-  storeName: string;
-  openTime: string;
-  closeTime: string;
-  shopType: "Food" | "Drink";
-  categoryId: string;
-  merchantId: string;
-  foodName: string;
-  originalPrice: string;
-  salePrice: string;
-  foodImage: string;
-  descriptions: string;
-  foodStatus: "Available" | "Out of Stock" | "Unavailable";
+  FoodId: string;
+  CategoryId: string;
+  MerchantId: string;
+  FoodName: string;
+  OriginalPrice: number;
+  SalePrice: number;
+  FoodImage: string;
+  Descriptions: string;
+  FoodStatus: number; // 1: Available, 0: Unavailable
+  storeName?: string; // Optional helper
+  shopType?: string;
   rating?: number;
   toppingOptions?: ToppingOption[];
 }
 
 interface Shop {
-  merchantId: string;
-  storeName: string;
-  ownerName: string;
-  status: "Open" | "Locked";
+  MerchantId: string;
+  UserId: string;
+  StoreName: string;
+  StoreAddress: string;
+  OpenTime: string;
+  CloseTime: string;
+  ActiveStatus: number; // 1: Open, 0: Locked
+  ShopType: string;
+  ownerName?: string;
   revenue: number;
   totalOrders: number;
 }
 
-const STATIC_CATEGORIES = [
-  { categoryid: "1", categoryname: "Tất cả" },
-  { categoryid: "2", categoryname: "Thức uống" },
-  { categoryid: "3", categoryname: "Đồ ăn" },
-  { categoryid: "4", categoryname: "Đồ chay" },
-  { categoryid: "5", categoryname: "Bánh kem" },
-  { categoryid: "6", categoryname: "Tráng miệng" },
-  { categoryid: "7", categoryname: "Pizza/Burger" },
-  { categoryid: "8", categoryname: "Món lẩu" },
-  { categoryid: "9", categoryname: "Sushi" },
-  { categoryid: "10", categoryname: "Mì" },
-  { categoryid: "11", categoryname: "Phở" },
-  { categoryid: "12", categoryname: "Bún" },
-  { categoryid: "13", categoryname: "Cơm hộp" },
-];
-
 export default function MenuManagement() {
   const [dishList, setDishList] = useState<Dish[]>([]);
-  const [shops, setShops] = useState<Shop[]>([
-    {
-      merchantId: "M001",
-      storeName: "ShopeeFood Official",
-      ownerName: "Trần Thị B",
-      status: "Open",
-      revenue: 12500000,
-      totalOrders: 156,
-    },
-    {
-      merchantId: "M002",
-      storeName: "Bún Chả Hà Nội Q.1",
-      ownerName: "Hoàng Anh E",
-      status: "Open",
-      revenue: 4200000,
-      totalOrders: 52,
-    },
-    {
-      merchantId: "M003",
-      storeName: "Trà Sữa Koi Thé",
-      ownerName: "Trương Văn F",
-      status: "Locked",
-      revenue: 8900000,
-      totalOrders: 110,
-    },
-  ]);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMerchantId, setSelectedMerchantId] = useState<string>("M001");
@@ -141,229 +80,14 @@ export default function MenuManagement() {
   const fetchDishesFromServer = async () => {
     setIsPageLoading(true);
     try {
-      const mockDishes: Dish[] = [
-        {
-          id: "d1",
-          storeName: "ShopeeFood Official",
-          openTime: "08:00",
-          closeTime: "22:00",
-          shopType: "Food",
-          categoryId: "3",
-          merchantId: "M001",
-          foodName: "Bún chả Hà Nội",
-          originalPrice: "55000",
-          salePrice: "45000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Bún chả truyền thống",
-          foodStatus: "Available",
-          rating: 5,
-          toppingOptions: [],
-        },
-        {
-          id: "d2",
-          storeName: "ShopeeFood Official",
-          openTime: "08:00",
-          closeTime: "22:00",
-          shopType: "Drink",
-          categoryId: "2",
-          merchantId: "M001",
-          foodName: "Trà sữa Trân trâu",
-          originalPrice: "40000",
-          salePrice: "35000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Trà sữa đậm vị",
-          foodStatus: "Available",
-          rating: 4.5,
-          toppingOptions: [],
-        },
-        {
-          id: "d3",
-          storeName: "Bún Chả Hà Nội Q.1",
-          openTime: "07:00",
-          closeTime: "21:00",
-          shopType: "Food",
-          categoryId: "12",
-          merchantId: "M002",
-          foodName: "Bún Chả Đặc Biệt",
-          originalPrice: "75000",
-          salePrice: "65000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Nhiều chả hơn",
-          foodStatus: "Available",
-          rating: 4.8,
-          toppingOptions: [],
-        },
-        {
-          id: "d4",
-          storeName: "Trà Sữa Koi Thé",
-          openTime: "09:00",
-          closeTime: "22:00",
-          shopType: "Drink",
-          categoryId: "2",
-          merchantId: "M003",
-          foodName: "Machiato Trà Xanh",
-          originalPrice: "60000",
-          salePrice: "55000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Best seller",
-          foodStatus: "Unavailable",
-          rating: 5,
-          toppingOptions: [],
-        },
-        {
-          id: "d5",
-          storeName: "Quán Chay Liên Hoa",
-          openTime: "06:00",
-          closeTime: "20:00",
-          shopType: "Food",
-          categoryId: "4",
-          merchantId: "M004",
-          foodName: "Cơm chay thập cẩm",
-          originalPrice: "40000",
-          salePrice: "35000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Đầy đủ dinh dưỡng",
-          foodStatus: "Available",
-          rating: 4.7,
-          toppingOptions: [],
-        },
-        {
-          id: "d6",
-          storeName: "Tiệm Bánh Ngọt Ngào",
-          openTime: "08:00",
-          closeTime: "22:00",
-          shopType: "Food",
-          categoryId: "5",
-          merchantId: "M005",
-          foodName: "Bánh kem dâu tây",
-          originalPrice: "250000",
-          salePrice: "200000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Bánh sinh nhật trái cây tươi",
-          foodStatus: "Available",
-          rating: 4.9,
-          toppingOptions: [],
-        },
-        {
-          id: "d7",
-          storeName: "Tiệm Bánh Ngọt Ngào",
-          openTime: "08:00",
-          closeTime: "22:00",
-          shopType: "Food",
-          categoryId: "6",
-          merchantId: "M005",
-          foodName: "Tiramisu nhỏ",
-          originalPrice: "45000",
-          salePrice: "40000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Vị cà phê thơm lừng",
-          foodStatus: "Available",
-          rating: 4.6,
-          toppingOptions: [],
-        },
-        {
-          id: "d8",
-          storeName: "FastFood 247",
-          openTime: "00:00",
-          closeTime: "23:59",
-          shopType: "Food",
-          categoryId: "7",
-          merchantId: "M006",
-          foodName: "Combo Burger Bò",
-          originalPrice: "89000",
-          salePrice: "79000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Kèm khoai tây và nước ngọt",
-          foodStatus: "Available",
-          rating: 4.5,
-          toppingOptions: [],
-        },
-        {
-          id: "d9",
-          storeName: "Lẩu Nấm Gia Bảo",
-          openTime: "10:00",
-          closeTime: "23:00",
-          shopType: "Food",
-          categoryId: "8",
-          merchantId: "M007",
-          foodName: "Set Lẩu Nấm 2 Người",
-          originalPrice: "350000",
-          salePrice: "299000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Các loại nấm tươi sạch",
-          foodStatus: "Available",
-          rating: 4.8,
-          toppingOptions: [],
-        },
-        {
-          id: "d10",
-          storeName: "Tokyo Shushi",
-          openTime: "10:30",
-          closeTime: "22:00",
-          shopType: "Food",
-          categoryId: "9",
-          merchantId: "M008",
-          foodName: "Sashimi Cá Hồi",
-          originalPrice: "180000",
-          salePrice: "150000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Cá hồi tươi Na Uy",
-          foodStatus: "Available",
-          rating: 4.9,
-          toppingOptions: [],
-        },
-        {
-          id: "d11",
-          storeName: "Mì Cay Sasin",
-          openTime: "08:00",
-          closeTime: "23:00",
-          shopType: "Food",
-          categoryId: "10",
-          merchantId: "M009",
-          foodName: "Mì Cay Hải Sản Cấp 7",
-          originalPrice: "65000",
-          salePrice: "55000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Dành cho tín đồ ăn cay",
-          foodStatus: "Out of Stock",
-          rating: 4.4,
-          toppingOptions: [],
-        },
-        {
-          id: "d12",
-          storeName: "Phở Thìn Lò Đúc",
-          openTime: "05:00",
-          closeTime: "13:00",
-          shopType: "Food",
-          categoryId: "11",
-          merchantId: "M010",
-          foodName: "Phở Tái Lăn",
-          originalPrice: "70000",
-          salePrice: "70000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Hương vị phở chuẩn xưa",
-          foodStatus: "Available",
-          rating: 4.7,
-          toppingOptions: [],
-        },
-        {
-          id: "d13",
-          storeName: "Cơm Văn Phòng Online",
-          openTime: "10:00",
-          closeTime: "14:00",
-          shopType: "Food",
-          categoryId: "13",
-          merchantId: "M011",
-          foodName: "Combo Cơm Sườn Bì Bí Đỏ",
-          originalPrice: "40000",
-          salePrice: "35000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Đảm bảo no bụng",
-          foodStatus: "Available",
-          rating: 4.5,
-          toppingOptions: [],
-        },
-      ];
+      const [fetchedShops, mockDishes] = await Promise.all([
+        getMockShops(),
+        getMockDishes()
+      ]);
+      
+      if (fetchedShops.length > 0) {
+        setShops(fetchedShops);
+      }
       setDishList(mockDishes);
     } catch (error) {
       console.error(error);
@@ -375,22 +99,20 @@ export default function MenuManagement() {
   const toggleShopStatus = (merchantId: string) => {
     setShops(
       shops.map((shop) => {
-        if (shop.merchantId === merchantId) {
-          const newStatus = shop.status === "Open" ? "Locked" : "Open";
-          // Update all dishes for this merchant
+        if (shop.MerchantId === merchantId) {
+          const newStatus = shop.ActiveStatus === 1 ? 0 : 1;
           setDishList(
             dishList.map((dish) => {
-              if (dish.merchantId === merchantId) {
+              if (dish.MerchantId === merchantId) {
                 return {
                   ...dish,
-                  foodStatus:
-                    newStatus === "Locked" ? "Unavailable" : "Available",
+                  FoodStatus: newStatus,
                 };
               }
               return dish;
             }),
           );
-          return { ...shop, status: newStatus };
+          return { ...shop, ActiveStatus: newStatus };
         }
         return shop;
       }),
@@ -399,10 +121,10 @@ export default function MenuManagement() {
 
   const filteredDishes = dishList.filter((dish) => {
     const matchesSearch =
-      dish.foodName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      dish.storeName.toLowerCase().includes(searchTerm.toLowerCase());
+      dish.FoodName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (dish.storeName || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMerchant =
-      selectedMerchantId === "all" || dish.merchantId === selectedMerchantId;
+      selectedMerchantId === "all" || dish.MerchantId === selectedMerchantId;
     return matchesSearch && matchesMerchant;
   });
 
@@ -412,7 +134,7 @@ export default function MenuManagement() {
     currentPage * ITEMS_PER_PAGE,
   );
 
-  const selectedShop = shops.find((s) => s.merchantId === selectedMerchantId);
+  const selectedShop = shops.find((s) => s.MerchantId === selectedMerchantId);
 
   return (
     <div className="space-y-8 font-sans">
@@ -439,7 +161,6 @@ export default function MenuManagement() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Shops Sidebar */}
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between px-2">
             <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">
@@ -452,38 +173,38 @@ export default function MenuManagement() {
           <div className="space-y-2">
             {shops.map((shop) => (
               <div
-                key={shop.merchantId}
-                className={`group relative p-4 rounded-3xl border transition-all ${selectedMerchantId === shop.merchantId ? "border-[#ee4d2d] bg-orange-50/50" : "border-gray-100 bg-white hover:border-orange-200"}`}
+                key={shop.MerchantId}
+                className={`group relative p-4 rounded-3xl border transition-all ${selectedMerchantId === shop.MerchantId ? "border-[#ee4d2d] bg-orange-50/50" : "border-gray-100 bg-white hover:border-orange-200"}`}
               >
                 <div
                   className="cursor-pointer"
-                  onClick={() => setSelectedMerchantId(shop.merchantId)}
+                  onClick={() => setSelectedMerchantId(shop.MerchantId)}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="space-y-0.5">
                       <p
-                        className={`font-black text-sm truncate pr-8 ${selectedMerchantId === shop.merchantId ? "text-[#ee4d2d]" : "text-gray-900"}`}
+                        className={`font-black text-sm truncate pr-8 ${selectedMerchantId === shop.MerchantId ? "text-[#ee4d2d]" : "text-gray-900"}`}
                       >
-                        {shop.storeName}
+                        {shop.StoreName}
                       </p>
                       <div className="flex items-center gap-2">
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
-                          #{shop.merchantId}
+                          #{shop.MerchantId}
                         </p>
                         <span className="text-[10px] text-gray-300">•</span>
                         <p className="text-[10px] text-gray-400 font-bold italic truncate max-w-[100px]">
-                          {shop.ownerName}
+                          {shop.ownerName || "Merchant"}
                         </p>
                       </div>
                     </div>
                     <span
-                      className={`h-2.5 w-2.5 rounded-full shrink-0 mt-1 shadow-sm ${shop.status === "Open" ? "bg-green-500 ring-4 ring-green-50" : "bg-red-500 ring-4 ring-red-50"}`}
+                      className={`h-2.5 w-2.5 rounded-full shrink-0 mt-1 shadow-sm ${shop.ActiveStatus === 1 ? "bg-green-500 ring-4 ring-green-50" : "bg-red-500 ring-4 ring-red-50"}`}
                     ></span>
                   </div>
                   <div className="flex items-center justify-between mt-3">
                     <div className="flex items-center gap-1.5">
                       <DollarSign
-                        className={`h-3 w-3 ${selectedMerchantId === shop.merchantId ? "text-[#ee4d2d]" : "text-gray-400"}`}
+                        className={`h-3 w-3 ${selectedMerchantId === shop.MerchantId ? "text-[#ee4d2d]" : "text-gray-400"}`}
                       />
                       <p className="text-xs font-black text-gray-700">
                         {shop.revenue.toLocaleString()}₫
@@ -498,16 +219,16 @@ export default function MenuManagement() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-8 w-8 rounded-xl ${shop.status === "Open" ? "hover:bg-red-100 text-red-500" : "hover:bg-green-100 text-green-500"}`}
+                    className={`h-8 w-8 rounded-xl ${shop.ActiveStatus === 1 ? "hover:bg-red-100 text-red-500" : "hover:bg-green-100 text-green-500"}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleShopStatus(shop.merchantId);
+                      toggleShopStatus(shop.MerchantId);
                     }}
                     title={
-                      shop.status === "Open" ? "Khóa quán" : "Mở khóa quán"
+                      shop.ActiveStatus === 1 ? "Khóa quán" : "Mở khóa quán"
                     }
                   >
-                    {shop.status === "Open" ? (
+                    {shop.ActiveStatus === 1 ? (
                       <Lock className="h-4 w-4" />
                     ) : (
                       <Unlock className="h-4 w-4" />
@@ -519,14 +240,8 @@ export default function MenuManagement() {
           </div>
         </div>
 
-        {/* Dishes Main View */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Shop Performance Summary (only when a specific shop is selected) */}
-          <Suspense
-            fallback={
-              <div className="h-32 bg-gray-50 animate-pulse rounded-[32px]"></div>
-            }
-          >
+          <Suspense fallback={<div className="h-32 bg-gray-50 animate-pulse rounded-[32px]"></div>}>
             {selectedShop && (
               <div className="grid grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
                 <Card className="rounded-[32px] border-none bg-orange-50 shadow-none p-6">
@@ -534,7 +249,7 @@ export default function MenuManagement() {
                     Chủ quán
                   </p>
                   <h4 className="text-xl font-black text-gray-900">
-                    {selectedShop.ownerName}
+                    {selectedShop.ownerName || "Merchant"}
                   </h4>
                 </Card>
                 <Card className="rounded-[32px] border-none bg-gray-50 shadow-none p-6 text-center">
@@ -557,10 +272,8 @@ export default function MenuManagement() {
                   <p className="text-[10px] font-black text-green-400 uppercase tracking-widest mb-1">
                     Trạng thái
                   </p>
-                  <h4
-                    className={`text-xl font-black ${selectedShop.status === "Open" ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {selectedShop.status === "Open" ? "Mở" : "Khóa"}
+                  <h4 className={`text-xl font-black ${selectedShop.ActiveStatus === 1 ? "text-green-600" : "text-red-600"}`}>
+                    {selectedShop.ActiveStatus === 1 ? "Mở" : "Khóa"}
                   </h4>
                 </Card>
               </div>
@@ -597,58 +310,35 @@ export default function MenuManagement() {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {paginatedDishes.map((dish) => (
-                      <tr
-                        key={dish.id}
-                        className="hover:bg-gray-50/50 transition-colors"
-                      >
+                      <tr key={dish.FoodId} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <img
-                              src={dish.foodImage}
-                              alt={dish.foodName}
+                              src={dish.FoodImage}
+                              alt={dish.FoodName}
                               className="h-10 w-10 rounded-xl object-cover border border-gray-100"
                             />
                             <div>
-                              <p className="font-bold text-gray-900">
-                                {dish.foodName}
-                              </p>
-                              <p className="text-[10px] text-gray-400 font-medium line-clamp-1">
-                                {dish.descriptions}
-                              </p>
+                              <p className="font-bold text-gray-900">{dish.FoodName}</p>
+                              <p className="text-[10px] text-gray-400 font-medium line-clamp-1">{dish.Descriptions}</p>
                             </div>
                           </div>
                         </td>
-
                         <td className="px-6 py-4">
                           <div className="space-y-0.5">
                             <p className="font-black text-[#ee4d2d]">
-                              {Number(
-                                dish.salePrice || dish.originalPrice,
-                              ).toLocaleString()}
-                              đ
+                              {(dish.SalePrice || dish.OriginalPrice || 0).toLocaleString()}đ
                             </p>
-                            {dish.salePrice && (
+                            {dish.SalePrice !== dish.OriginalPrice && (
                               <p className="text-[10px] text-gray-400 line-through">
-                                {Number(dish.originalPrice).toLocaleString()}đ
+                                {(dish.OriginalPrice || 0).toLocaleString()}đ
                               </p>
                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${
-                              dish.foodStatus === "Available"
-                                ? "bg-green-50 text-green-600"
-                                : dish.foodStatus === "Out of Stock"
-                                  ? "bg-yellow-50 text-yellow-600"
-                                  : "bg-red-50 text-red-600"
-                            }`}
-                          >
-                            {dish.foodStatus === "Available"
-                              ? "Đang bán"
-                              : dish.foodStatus === "Out of Stock"
-                                ? "Tạm hết"
-                                : "Ngừng bán"}
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${dish.FoodStatus === 1 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+                            {dish.FoodStatus === 1 ? "Đang bán" : "Ngừng bán"}
                           </span>
                         </td>
                       </tr>

@@ -1,8 +1,13 @@
 import axios, { AxiosInstance, AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import mockDishes from './mockData/dishes.json';
+import mockShops from './mockData/shops.json';
+import mockOrders from './mockData/orders.json';
+import mockReviews from './mockData/reviews.json';
+import mockProducts from './mockData/products.json';
 
 // Create axios instance with base URL
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:4040/api',
+  baseURL: 'http://localhost:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -11,7 +16,7 @@ const apiClient: AxiosInstance = axios.create({
 // Add token to requests if available
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('authToken');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -26,8 +31,7 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Clear token and redirect to login if unauthorized
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
       window.location.href = '/login';
     }
@@ -35,74 +39,136 @@ apiClient.interceptors.response.use(
   }
 );
 
-// ==================== Auth Endpoints ====================
-
-export interface UserRegistration {
-  fullName: string;
-  email: string;
-  password: string;
-  phoneNumber: string;
-  birthDate: string;
-}
-
-export interface UserLogin {
-  email: string;
-  password: string;
-}
+// ==================== Types & Interfaces ====================
 
 export interface UserResponse {
-  userId: string;
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  birthDate: string;
-  role: string;
-  token?: string;
+  UserId: string;
+  FullName: string;
+  Email: string;
+  PhoneNumber: string;
+  BirthDate: string;
+  RoleName?: string;
+  Token?: string;
 }
 
-export const registerUser = async (data: UserRegistration): Promise<UserResponse> => {
-  const response = await apiClient.post<UserResponse>('/users/register', data);
-  return response.data;
-};
-
-export const loginUser = async (data: UserLogin): Promise<UserResponse> => {
-  const response = await apiClient.post<UserResponse>('/users/login', data);
-  if (response.data.token) {
-    localStorage.setItem('authToken', response.data.token);
-  }
-  return response.data;
-};
-
-// ==================== Food Endpoints ====================
-
 export interface Topping {
-  toppingId: string;
-  toppingName: string;
-  price: number;
+  ToppingId: string;
+  MerchantId: string;
+  ToppingName: string;
+  Price: number;
 }
 
 export interface FoodCategory {
-  categoryId: string;
-  categoryName: string;
+  CategoryId: string;
+  CategoryName: string;
 }
 
 export interface Merchant {
-  merchantId: string;
-  storeName: string;
-  storeAddress?: string;
+  MerchantId: string;
+  UserId: string;
+  StoreName: string;
+  StoreAddress: string;
+  OpenTime: string;
+  CloseTime: string;
+  ActiveStatus: number; // 0/1
+  ShopType: string;
 }
 
 export interface Food {
-  foodId: string;
-  foodName: string;
-  description: string;
-  price: number;
-  rating: number;
-  availableQuantity: number;
-  foodCategory: FoodCategory;
-  merchant: Merchant;
-  toppingList?: Topping[];
+  FoodId: string;
+  CategoryId: string;
+  MerchantId: string;
+  FoodName: string;
+  OriginalPrice: number;
+  SalePrice: number;
+  FoodImage: string;
+  Descriptions: string;
+  FoodStatus: number; // 0/1
+  // Join/Helper fields
+  StoreName?: string;
+  CategoryName?: string;
+  ToppingOptions?: Topping[];
+  Rating?: number;
 }
+
+export interface OrderDetail {
+  OrderItemId: string;
+  OrderId: string;
+  FoodId: string;
+  Quantity: number;
+  UnitPrice: number;
+  FoodName?: string;
+  FoodImage?: string;
+}
+
+export interface Order {
+  OrderId: string;
+  UserId: string;
+  MerchantId: string;
+  DriverId?: string | null;
+  VoucherId?: string | null;
+  OrderDate: string;
+  PickupTime?: string;
+  DeliveryTime?: string;
+  FoodAmount: number;
+  ShippingFee: number;
+  FoodDiscount: number;
+  ShipDiscount: number;
+  FinalAmount: number;
+  OrderStatus: number; // 1-5
+  DeliveryAddress: string;
+  // Join fields
+  FullName?: string;
+  StoreName?: string;
+  OrderItemsSummary?: string;
+  PaymentStatus?: number; // 0/1
+  PaymentMethod?: string;
+  AvatarUrl?: string; // For merchant UI
+  orderDetails?: OrderDetail[];
+}
+
+export interface Review {
+  ReviewId: string;
+  OrderId: string;
+  Rating: number;
+  Comment: string;
+  ReviewType: string; // 'Order' | 'FoodItem'
+  MediaUrl?: string;
+  ReviewDate: string;
+  // Join fields
+  FullName?: string;
+  FoodName?: string;
+  FoodImage?: string;
+}
+
+// ==================== Mock Data Access =====================
+
+export const getMockDishes = async (): Promise<Food[]> => {
+  await new Promise(resolve => setTimeout(resolve, 800));
+  return mockDishes as Food[];
+};
+
+export const getMockShops = async (): Promise<Merchant[]> => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return mockShops as Merchant[];
+};
+
+export const getMockOrders = async (): Promise<Order[]> => {
+  await new Promise(resolve => setTimeout(resolve, 600));
+  return mockOrders as Order[];
+};
+
+export const getMockReviews = async (): Promise<Review[]> => {
+  await new Promise(resolve => setTimeout(resolve, 700));
+  return mockReviews as Review[];
+};
+
+export const getMockProducts = async (): Promise<Food[]> => {
+  await new Promise(resolve => setTimeout(resolve, 600));
+  return mockProducts as Food[];
+};
+
+// ==================== API Methods (Templates) ====================
 
 export const getAllFoods = async (): Promise<Food[]> => {
   const response = await apiClient.get<Food[]>('/foods');
@@ -114,99 +180,8 @@ export const getFoodsByMerchant = async (merchantId: string): Promise<Food[]> =>
   return response.data;
 };
 
-// ==================== Cart Endpoints ====================
-
-export interface AddToCartRequest {
-  userId: string;
-  foodId: string;
-  quantity: number;
-  toppingIds?: string[];
-}
-
-export interface CartItemTopping {
-  toppingId: string;
-  toppingName: string;
-  price: number;
-}
-
-export interface CartItem {
-  cartItemId: string;
-  food: Food;
-  quantity: number;
-  toppingList: CartItemTopping[];
-  totalPrice: number;
-}
-
-export interface CartResponse {
-  cartId: string;
-  user: {
-    userId: string;
-    fullName: string;
-  };
-  cartItems: CartItem[];
-  totalAmount: number;
-}
-
-export const addToCart = async (data: AddToCartRequest): Promise<CartItem> => {
-  const response = await apiClient.post<CartItem>('/carts/add-item', data);
-  return response.data;
-};
-
-export const getCart = async (userId: string): Promise<CartResponse> => {
-  const response = await apiClient.get<CartResponse>(`/carts/${userId}`);
-  return response.data;
-};
-
-export const removeFromCart = async (cartItemId: string): Promise<void> => {
-  await apiClient.delete(`/carts/remove/${cartItemId}`);
-};
-
-export const clearCart = async (userId: string): Promise<void> => {
-  await apiClient.delete(`/carts/${userId}`);
-};
-
-// ==================== Order Endpoints ====================
-
-export interface PlaceOrderRequest {
-  userId: string;
-  merchantId: string;
-  driverId?: string | null;
-  voucherId?: string | null;
-  deliveryAddress: string;
-  foodAmount: number;
-  shippingFee: number;
-  discountAmount: number;
-}
-
-export interface OrderDetail {
-  detailId: string;
-  food: Food;
-  quantity: number;
-  toppingList: CartItemTopping[];
-}
-
-export interface Order {
-  orderId: string;
-  user: {
-    userId: string;
-    fullName: string;
-  };
-  merchant: Merchant;
-  driver?: any;
-  orderTime: string;
-  pickupTime?: string;
-  deliveryTime?: string;
-  deliveryAddress: string;
-  foodAmount: number;
-  shippingFee: number;
-  discountAmount: number;
-  totalAmount: number;
-  status: number;
-  orderDetails: OrderDetail[];
-}
-
-export const placeOrder = async (data: PlaceOrderRequest): Promise<Order> => {
-  const response = await apiClient.post<Order>('/orders/place-order', data);
+export const getCart = async (userId: string): Promise<any> => {
+  const response = await apiClient.get(`/carts/${userId}`);
   return response.data;
 };
 
@@ -220,77 +195,9 @@ export const getOrderById = async (orderId: string): Promise<Order> => {
   return response.data;
 };
 
-// ==================== Payment Endpoints ====================
-
-export interface PaymentRequest {
-  orderId: string;
-  amount: number;
-  paymentMethod: string;
-}
-
-export interface Payment {
-  paymentId: string;
-  order: Order;
-  amount: number;
-  paymentMethod: string;
-  transactionId: string;
-  status: string;
-}
-
-export const processPayment = async (data: PaymentRequest): Promise<Payment> => {
-  const response = await apiClient.post<Payment>('/payments/process', data);
-  return response.data;
-};
-
-// ==================== Review Endpoints ====================
-
-export interface SubmitReviewRequest {
-  orderId: string;
-  rating: number;
-  comment: string;
-}
-
-export interface Review {
-  reviewId: string;
-  order: Order;
-  rating: number;
-  comment: string;
-  reviewType: string;
-  createdAt: string;
-}
-
-export const submitReview = async (data: SubmitReviewRequest): Promise<Review> => {
-  const response = await apiClient.post<Review>('/reviews/submit', data);
-  return response.data;
-};
-
 export const getOrderReviews = async (orderId: string): Promise<Review[]> => {
   const response = await apiClient.get<Review[]>(`/reviews/order/${orderId}`);
   return response.data;
-};
-
-// ==================== Error Handling ====================
-
-export const handleApiError = (error: AxiosError) => {
-  if (error.response) {
-    // Server responded with error status
-    return {
-      message: (error.response.data as any)?.message || 'An error occurred',
-      status: error.response.status,
-    };
-  } else if (error.request) {
-    // Request made but no response
-    return {
-      message: 'No response from server',
-      status: 0,
-    };
-  } else {
-    // Error in request setup
-    return {
-      message: error.message,
-      status: 0,
-    };
-  }
 };
 
 export default apiClient;

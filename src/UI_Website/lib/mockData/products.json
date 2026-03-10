@@ -1,0 +1,80 @@
+[
+  {
+    "FoodId": "p1",
+    "CategoryId": "C001",
+    "MerchantId": "m1",
+    "FoodName": "Nui & Mì Xào Bò",
+    "OriginalPrice": 35000,
+    "SalePrice": 31500,
+    "FoodImage": "https://cdn.tgdd.vn/2021/01/CookRecipe/Avatar/nui-xao-bo-bam-ca-chua-thumbnail.jpg",
+    "Descriptions": "Nui xào bò đậm đà, mì xào giòn rụm với rau củ tươi ngon, phục vụ kèm nước chấm đặc trưng của quán.",
+    "FoodStatus": 1,
+    "merchantName": "Quán Ăn Tisu",
+    "discount": "Mã giảm 10%"
+  },
+  {
+    "FoodId": "p2",
+    "CategoryId": "C002",
+    "MerchantId": "m2",
+    "FoodName": "Cháo Dinh Dưỡng Dành Cho Bé",
+    "OriginalPrice": 25000,
+    "SalePrice": 20000,
+    "FoodImage": "https://2.bp.blogspot.com/-K4ApjSsk7DY/WY0vU2mKeqI/AAAAAAAAAJY/2w1b406X9BMCoydV0J0sltZuSkDJZAk_ACLcBGAs/s1600/15.jpg",
+    "Descriptions": "Cháo dinh dưỡng cho bé with nguyên liệu sạch, thay đổi thực đơn mỗi ngày: lươn, thịt bằm, cá hồi.",
+    "FoodStatus": 1,
+    "merchantName": "Cháo Trẻ Em BiBo",
+    "discount": "Mã giảm 20%"
+  },
+  {
+    "FoodId": "p3",
+    "CategoryId": "C003",
+    "MerchantId": "m3",
+    "FoodName": "Cơm Tấm Sườn Bì Chả",
+    "OriginalPrice": 45000,
+    "SalePrice": 40000,
+    "FoodImage": "https://image-us.eva.vn/upload/2-2021/images/2021-04-30/ngay-nghi-hoc-me-dam-cach-lam-com-tam-suon-bi-ngon-hoan-hao-tu-a-den-z-batch_176214510_10222974579845719_3122974772686227-1619738133-734-width700height393.jpg",
+    "Descriptions": "Cơm tấm sườn bì chả truyền thống, sườn nướng mật ong thơm phức, nước mắm kẹo đậm vị.",
+    "FoodStatus": 1,
+    "merchantName": "Cơm Tấm Chị Huệ",
+    "discount": "Giảm món"
+  },
+  {
+    "FoodId": "p4",
+    "CategoryId": "C004",
+    "MerchantId": "m4",
+    "FoodName": "Phở Bò Truyền Thống",
+    "OriginalPrice": 55000,
+    "SalePrice": 49500,
+    "FoodImage": "https://cdn.hita.com.vn/storage/blog/am-thuc-doi-song/cach-nau-pho-3.jpeg",
+    "Descriptions": "Phở bò truyền thống with nước dùng thanh ngọt từ xương hầm, thịt bò tái lăn mềm mại.",
+    "FoodStatus": 1,
+    "merchantName": "Phở 193",
+    "discount": "Mã giảm 10%"
+  },
+  {
+    "FoodId": "p5",
+    "CategoryId": "C005",
+    "MerchantId": "m5",
+    "FoodName": "Combo Gà Rán & Trà Sữa",
+    "OriginalPrice": 60000,
+    "SalePrice": 58000,
+    "FoodImage": "https://tse1.mm.bing.net/th/id/OIP.TYykdUopspwltWZDgD_zgQHaE8?rs=1&pid=ImgDetMain&o=7&rm=3",
+    "Descriptions": "Combo gà rán giòn tan, khoai tây chiên and trà sữa trân châu cho buổi chiều năng động.",
+    "FoodStatus": 1,
+    "merchantName": "Rana Food & Drinks",
+    "discount": "Giảm đến 2k"
+  },
+  {
+    "FoodId": "p6",
+    "CategoryId": "C006",
+    "MerchantId": "m6",
+    "FoodName": "Hột Vịt Lộn & Đồ Ăn Vặt",
+    "OriginalPrice": 15000,
+    "SalePrice": 10500,
+    "FoodImage": "https://tse2.mm.bing.net/th/id/OIP.6fqtuI82gBB2zUb811b7nAHaHa?rs=1&pid=ImgDetMain&o=7&rm=3",
+    "Descriptions": "Mực nướng, hột vịt lộn and các món nhắm bình dân, phục vụ nhanh chóng.",
+    "FoodStatus": 1,
+    "merchantName": "Minh Tiến",
+    "discount": "Giảm hết 30%"
+  }
+]
