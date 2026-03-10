@@ -2,7 +2,13 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/context/CartContext";
@@ -100,7 +106,9 @@ export default function ProductCard({ product }: ProductProps) {
               className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-100"
               onClick={(e) => e.stopPropagation()}
             >
-              <span className="text-[10px] font-black text-gray-400 uppercase ml-1">SL:</span>
+              <span className="text-[10px] font-black text-gray-400 uppercase ml-1">
+                SL:
+              </span>
               <input
                 type="number"
                 min={1}
@@ -118,8 +126,7 @@ export default function ProductCard({ product }: ProductProps) {
             className="flex-1 h-9 rounded-xl border-gray-100 text-gray-600 font-bold text-xs hover:bg-gray-50 transition-all active:scale-95"
             onClick={handleAddToCart}
           >
-            <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-            + Giỏ
+            <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />+ Giỏ
           </Button>
           <Button
             className="flex-1 h-9 rounded-xl bg-[#ee4d2d] hover:bg-[#d73211] text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"

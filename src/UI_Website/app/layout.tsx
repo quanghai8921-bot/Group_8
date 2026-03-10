@@ -9,7 +9,8 @@ const interFont = Inter({ subsets: ["latin"] });
 
 export const metadata = {
   title: "ShopeeFood - Giao Đồ Ăn Tận Nơi",
-  description: "Đặt món trực tuyến với hàng ngàn quán ăn, nhà hàng. Giao hàng nhanh chóng và tiện lợi cùng ShopeeFood.",
+  description:
+    "Đặt món trực tuyến với hàng ngàn quán ăn, nhà hàng. Giao hàng nhanh chóng và tiện lợi cùng ShopeeFood.",
 };
 
 export default function RootLayout(props: { children: React.ReactNode }) {
@@ -53,12 +54,13 @@ export default function RootLayout(props: { children: React.ReactNode }) {
       <body className={interFont.className} suppressHydrationWarning>
         <AuthProvider>
           <CartProvider>
-            <div className="flex flex-col min-h-screen font-sans bg-gray-50" suppressHydrationWarning>
-              { }
-              <div className="flex-grow">
-                {children}
-              </div>
-              { }
+            <div
+              className="flex flex-col min-h-screen font-sans bg-gray-50"
+              suppressHydrationWarning
+            >
+              {}
+              <div className="flex-grow">{children}</div>
+              {}
               <ConditionalFooter />
             </div>
           </CartProvider>
