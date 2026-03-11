@@ -102,23 +102,6 @@ export default function MerchantReviews() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Loại:</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTypeFilter("Order")}
-                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTypeFilter === "Order" ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-600 hover:bg-blue-100"}`}
-              >
-                Đơn hàng
-              </button>
-              <button
-                onClick={() => setActiveTypeFilter("FoodItem")}
-                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTypeFilter === "FoodItem" ? "bg-orange-600 text-white" : "bg-orange-50 text-orange-600 hover:bg-orange-100"}`}
-              >
-                Món ăn
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="divide-y divide-gray-50">

@@ -86,7 +86,7 @@ export default function MenuManagement() {
       ]);
       
       if (fetchedShops.length > 0) {
-        setShops(fetchedShops);
+        setShops(fetchedShops as any);
       }
       setDishList(mockDishes);
     } catch (error) {
@@ -151,7 +151,7 @@ export default function MenuManagement() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Tìm món hoặc quán..."
+              placeholder="Tìm món..."
               className="pl-10 h-11 w-64 rounded-xl border-gray-100 focus:border-[#ee4d2d]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

@@ -1,0 +1,24 @@
+[
+  {
+    "UserId": "D001",
+    "FullName": "Nguyễn Văn Xế",
+    "PhoneNumber": "0912 345 678",
+    "LicensePlate": "29A-123.45",
+    "VehicleType": "Xe máy (Honda Wave)",
+    "IsOnline": true,
+    "Latitude": 21.012345,
+    "Longitude": 105.845678,
+    "UpdatedAt": "2026-03-11T10:20:00Z"
+  },
+  {
+    "UserId": "D002",
+    "FullName": "Lê Văn Tài",
+    "PhoneNumber": "0988 777 666",
+    "LicensePlate": "30F-999.88",
+    "VehicleType": "Xe máy (Yamaha Exciter)",
+    "IsOnline": true,
+    "Latitude": 21.022345,
+    "Longitude": 105.835678,
+    "UpdatedAt": "2026-03-11T10:22:00Z"
+  }
+]

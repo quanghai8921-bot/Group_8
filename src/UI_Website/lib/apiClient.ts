@@ -4,6 +4,8 @@ import mockShops from './mockData/shops.json';
 import mockOrders from './mockData/orders.json';
 import mockReviews from './mockData/reviews.json';
 import mockProducts from './mockData/products.json';
+import mockDrivers from './mockData/drivers.json';
+import mockUserCoins from './mockData/userCoins.json';
 
 // Create axios instance with base URL
 const apiClient: AxiosInstance = axios.create({
@@ -141,6 +143,19 @@ export interface Review {
   FoodImage?: string;
 }
 
+export interface Driver {
+  UserId: string;
+  LicensePlate: string;
+  VehicleType: string;
+  IsOnline: boolean;
+  Latitude?: number;
+  Longitude?: number;
+  UpdatedAt?: string;
+  // Join fields
+  FullName?: string;
+  PhoneNumber?: string;
+}
+
 // ==================== Mock Data Access =====================
 
 export const getMockDishes = async (): Promise<Food[]> => {
@@ -166,6 +181,17 @@ export const getMockReviews = async (): Promise<Review[]> => {
 export const getMockProducts = async (): Promise<Food[]> => {
   await new Promise(resolve => setTimeout(resolve, 600));
   return mockProducts as Food[];
+};
+
+export const getMockDrivers = async (): Promise<Driver[]> => {
+  await new Promise(resolve => setTimeout(resolve, 400));
+  return mockDrivers as any;
+};
+
+export const getMockUserCoins = async (userId: string): Promise<any> => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  // In a real scenario, we'd filter by userId
+  return mockUserCoins;
 };
 
 // ==================== API Methods (Templates) ====================
@@ -197,6 +223,27 @@ export const getOrderById = async (orderId: string): Promise<Order> => {
 
 export const getOrderReviews = async (orderId: string): Promise<Review[]> => {
   const response = await apiClient.get<Review[]>(`/reviews/order/${orderId}`);
+  return response.data;
+};
+
+// ==================== Auth & Order Actions ====================
+
+export const handleApiError = (error: AxiosError): { message: string } => {
+  console.error('API Error:', error);
+  if (error.response && error.response.data) {
+    const data = error.response.data as any;
+    return { message: data.message || 'Có lỗi xảy ra từ máy chủ.' };
+  }
+  return { message: 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' };
+};
+
+export const loginUser = async (credentials: any): Promise<any> => {
+  const response = await apiClient.post('/login', credentials);
+  return response.data;
+};
+
+export const placeOrder = async (orderData: any): Promise<any> => {
+  const response = await apiClient.post('/orders', orderData);
   return response.data;
 };
 

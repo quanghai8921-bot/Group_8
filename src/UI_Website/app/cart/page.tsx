@@ -31,11 +31,16 @@ export default function CartPage() {
     }).format(amount);
   }
 
-  function handleQuantityChange(itemId: string, newQuantity: number) {
+  function handleQuantityChange(item: any, newQuantity: number) {
+    const toppings = item.selectedToppings || [];
+    const finalKey = toppings.length > 0 
+      ? `${item.FoodId}-${toppings.map((t: any) => t.ToppingName).sort().join(",")}` 
+      : item.FoodId;
+    
     if (newQuantity <= 0) {
-      deleteItemFromCart(itemId);
+      deleteItemFromCart(finalKey);
     } else {
-      changeItemQuantity(itemId, newQuantity);
+      changeItemQuantity(finalKey, newQuantity);
     }
   }
 
@@ -92,7 +97,7 @@ export default function CartPage() {
                             {item.FoodName}
                           </h3>
                           <p className="text-gray-500 font-medium">
-                            Đơn giá: {item.Price.toLocaleString("vi-VN")}đ
+                            Đơn giá: {(item.Price || 0).toLocaleString("vi-VN")}đ
                           </p>
                         </div>
                         <div className="flex items-center gap-3 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
@@ -101,7 +106,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-9 w-9 rounded-lg hover:bg-white hover:shadow-sm text-gray-600 transition-all font-bold"
                             onClick={function () {
-                              handleQuantityChange(item.FoodId, item.Quantity - 1);
+                              handleQuantityChange(item, item.Quantity - 1);
                             }}
                           >
                             -
@@ -113,7 +118,7 @@ export default function CartPage() {
                             onChange={function (e) {
                               handleQuantityChange(
                                 item.FoodId,
-                                Number(e.target.value),
+                                Number(e.target.value) || 1,
                               );
                             }}
                             className="w-14 h-9 text-center bg-transparent border-none focus-visible:ring-0 font-bold text-gray-900"
@@ -123,7 +128,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-9 w-9 rounded-lg hover:bg-white hover:shadow-sm text-gray-600 transition-all font-bold"
                             onClick={function () {
-                              handleQuantityChange(item.FoodId, item.Quantity + 1);
+                              handleQuantityChange(item, item.Quantity + 1);
                             }}
                           >
                             +
@@ -131,7 +136,7 @@ export default function CartPage() {
                         </div>
                         <div className="text-right min-w-[140px]">
                           <p className="font-bold text-xl text-[#ee4d2d]">
-                            {formatVNDCurrency(item.Price * item.Quantity)}
+                            {formatVNDCurrency((Number(item.Price) || 0) * (Number(item.Quantity) || 0))}
                           </p>
                         </div>
                         <Button
@@ -139,7 +144,11 @@ export default function CartPage() {
                           size="icon"
                           className="h-10 w-10 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                           onClick={function () {
-                            deleteItemFromCart(item.FoodId);
+                            const toppings = item.selectedToppings || [];
+                            const finalKey = toppings.length > 0 
+                              ? `${item.FoodId}-${toppings.map((t: any) => t.ToppingName).sort().join(",")}` 
+                              : item.FoodId;
+                            deleteItemFromCart(finalKey);
                           }}
                         >
                           <Trash2 className="w-5 h-5" />

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { getMockDrivers, Driver } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
@@ -17,6 +18,9 @@ import {
   Camera,
   Upload,
   X,
+  User,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 type OrderStatus = "PENDING" | "PREPARING" | "SHIPPING" | "DELIVERED";
@@ -41,6 +45,7 @@ export default function OrderStatusPage() {
   const [orderId, setOrderId] = useState("");
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isReviewed, setIsReviewed] = useState(false);
+  const [driver, setDriver] = useState<Driver | null>(null);
 
   // Review form state (Mapping to DB schema)
   const [rating, setRating] = useState(0);
@@ -66,6 +71,16 @@ export default function OrderStatusPage() {
       clearTimeout(timer2);
     };
   }, []);
+
+  useEffect(() => {
+    if (currentStatus === "SHIPPING" && !driver) {
+      getMockDrivers().then((drivers) => {
+        if (drivers.length > 0) {
+          setDriver(drivers[0]);
+        }
+      });
+    }
+  }, [currentStatus, driver]);
 
   const getCurrentStepIndex = () => {
     return STATUS_STEPS.findIndex((step) => step.id === currentStatus);
@@ -111,8 +126,8 @@ export default function OrderStatusPage() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto mt-12 px-4 w-full">
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+      <div className="max-w-6xl mx-auto mt-12 px-4 w-full flex flex-col lg:flex-row gap-6 items-start">
+        <div className="flex-1 bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
           {/* Header */}
           <div className="bg-[#ee4d2d] p-8 text-white relative">
             <div className="relative z-10">
@@ -295,9 +310,58 @@ export default function OrderStatusPage() {
                 Cần hỗ trợ liên hệ tổng đài
                 <ChevronRight className="w-4 h-4" />
               </Button>
+        </div>
+      </div>
+    </div>
+        
+    {/* Driver Info Panel */}
+    {(currentStatus === "SHIPPING" || currentStatus === "DELIVERED") && driver && (
+          <div className="w-full lg:w-80 shrink-0 lg:sticky lg:top-8 animate-in fade-in slide-in-from-right-10 duration-700">
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden text-center">
+              <div className="bg-blue-600 p-6 text-white relative">
+                <div className="relative z-10">
+                  <h2 className="text-xl font-black uppercase tracking-tight">Tài xế của bạn</h2>
+                </div>
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <Truck className="w-16 h-16" />
+                </div>
+              </div>
+              <div className="p-8">
+                <div className="w-24 h-24 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-blue-50 shadow-inner relative">
+                  <User className="w-12 h-12 text-gray-400" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                    <Zap className="w-3 h-3 text-white fill-white" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-black text-gray-900 mb-1">{driver.FullName}</h3>
+                <p className="text-gray-500 font-bold text-sm mb-6 flex items-center justify-center gap-1">
+                  <ShieldCheck className="w-4 h-4 text-blue-500" />
+                  Đối tác ShopeeFood
+                </p>
+                
+                <div className="space-y-4 text-left">
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Số điện thoại</p>
+                    <p className="font-bold text-gray-800">{driver.PhoneNumber}</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Biển số xe</p>
+                    <p className="font-bold text-gray-800">{driver.LicensePlate}</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Loại xe</p>
+                    <p className="font-bold text-gray-800">{driver.VehicleType}</p>
+                  </div>
+                </div>
+                
+                <Button className="w-full mt-8 py-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-100 flex items-center justify-center gap-2 transition-all active:scale-95">
+                  <Phone className="w-4 h-4" />
+                  GỌI CHO TÀI XẾ
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Review Modal */}

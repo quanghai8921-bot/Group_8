@@ -29,9 +29,10 @@ type CartContextType = {
 };
 
 // Utilities
-export const parsePrice = (price: string | number) => {
+export const parsePrice = (price: any) => {
     if (typeof price === 'number') return price;
-    return parseInt(price.replace(/\D/g, ""), 10) || 0;
+    if (typeof price === 'string') return parseInt(price.replace(/\D/g, ""), 10) || 0;
+    return 0;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -65,17 +66,28 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Tạo key duy nhất để phân biệt các sản phẩm khác topping
     const generateItemKey = (productId: string, toppings?: ToppingOption[]) => {
-        if (!toppings || toppings.length === 0) return `${productId}`;
+        const id = productId || "unknown";
+        if (!toppings || toppings.length === 0) return `${id}`;
         const toppingStr = toppings.map(t => t.ToppingName).sort().join(",");
-        return `${productId}-${toppingStr}`;
+        return `${id}-${toppingStr}`;
     };
 
     const addToCart = (product: any, quantity: number, selectedToppings?: ToppingOption[]) => {
+        if (!product) return;
+
         // Map from API Product to CartItem format
-        const foodId = product.FoodId || product.id; // Handle both old and new for migration
+        const foodId = product.FoodId || product.id; 
         const foodName = product.FoodName || product.name;
-        const price = parsePrice(product.SalePrice || product.OriginalPrice || product.price);
-        const image = product.FoodImage || product.image;
+        
+        // Critical validation: must have ID and Name
+        if (!foodId || !foodName) {
+            console.error("Invalid product added to cart:", product);
+            return;
+        }
+
+        const price = parsePrice(product.SalePrice || product.OriginalPrice || product.Price || product.price);
+        const image = product.FoodImage || product.image || "";
+        const validQuantity = Math.max(1, quantity || 1);
 
         setCart(prev => {
             const newItemKey = generateItemKey(foodId, selectedToppings);
@@ -86,7 +98,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
             if (existingIndex !== -1) {
                 return prev.map((item, index) =>
                     index === existingIndex
-                        ? { ...item, Quantity: item.Quantity + quantity }
+                        ? { ...item, Quantity: (item.Quantity || 0) + validQuantity }
                         : item
                 );
             }
@@ -95,7 +107,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
                 FoodName: foodName, 
                 Price: price, 
                 FoodImage: image, 
-                Quantity: quantity, 
+                Quantity: validQuantity, 
                 selectedToppings 
             }];
         });
@@ -125,11 +137,22 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     const totalPrice = useMemo(() =>
         cart.reduce((sum, item) => {
-            const basePrice = item.Price;
-            const toppingPrice = item.selectedToppings?.reduce((tSum, t) => tSum + t.Price, 0) || 0;
-            return sum + (basePrice + toppingPrice) * item.Quantity;
+            const basePrice = Number(item.Price) || 0;
+            const toppingPrice = item.selectedToppings?.reduce((tSum, t) => tSum + (Number(t.Price) || 0), 0) || 0;
+            const quantity = Number(item.Quantity) || 0;
+            return sum + (basePrice + toppingPrice) * quantity;
         }, 0),
         [cart]);
+    
+    // Cleanup: Remove invalid items that might have leaked into the cart
+    useEffect(() => {
+        if (isMounted && cart.length > 0) {
+            const hasInvalidItems = cart.some(item => !item.FoodId || !item.FoodName);
+            if (hasInvalidItems) {
+                setCart(prev => prev.filter(item => item.FoodId && item.FoodName));
+            }
+        }
+    }, [cart, isMounted]);
 
     return (
         <CartContext.Provider
