@@ -85,6 +85,7 @@ export default function RegisterPage() {
         password: registrationFormData.password,
         phoneNumber: registrationFormData.phoneNumber,
         birthDate: registrationFormData.birthDate,
+        addressDelivery: registrationFormData.addressDelivery,
       });
 
       // Redirect to login page after successful registration

@@ -43,6 +43,7 @@ export interface UserRegistration {
   password: string;
   phoneNumber: string;
   birthDate: string;
+  addressDelivery: string;
 }
 
 export interface UserLogin {

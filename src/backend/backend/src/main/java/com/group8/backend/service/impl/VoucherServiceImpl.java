@@ -22,7 +22,7 @@ public class VoucherServiceImpl implements VoucherService {
         if (v.getEndDate() != null && v.getEndDate().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Voucher has expired");
         }
-        if (v.getMinOrderValue() != null && orderAmount.compareTo(v.getMinOrderValue()) < 0) {
+        if (v.getMinOrderValue() != null && orderAmount.compareTo(BigDecimal.valueOf(v.getMinOrderValue())) < 0) {
             throw new RuntimeException("Order amount does not meet voucher minimum requirement");
         }
         return v;

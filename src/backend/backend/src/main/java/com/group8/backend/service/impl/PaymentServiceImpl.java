@@ -27,14 +27,14 @@ public class PaymentServiceImpl implements PaymentService {
         Payment p = new Payment();
         p.setPaymentId(generateId());
         p.setOrder(order);
-        p.setAmount(dto.getAmount());
+        p.setAmount(dto.getAmount().longValue());
         p.setPaymentMethod(dto.getPaymentMethod());
         p.setPaymentDate(LocalDateTime.now());
         p.setStatus(dto.getStatus());
         paymentRepository.save(p);
 
         // Optionally update order status to Paid/Completed (business rule)
-        order.setStatus((byte)4); // 4 = Completed
+        order.setOrderStatus(true); // Assuming true means completed
         orderRepository.save(order);
     }
 

@@ -2,39 +2,43 @@ package com.group8.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
 import java.util.Set;
 
 @Entity
-@Table(name = "Food_Item")
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Table(name = "FoodItems")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class FoodItem {
     @Id
-    @Column(name = "Food_ID", length = 10)
+    @Column(name = "FoodID", length = 10)
     private String foodId;
 
     @ManyToOne
-    @JoinColumn(name = "Category_ID", nullable = false)
+    @JoinColumn(name = "CategoryID", nullable = false)
     private MenuCategory menuCategory;
 
-    @Column(name = "Food_Name", length = 50, nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "MerchantID", nullable = false)
+    private Merchant merchant;
+
+    @Column(name = "FoodName", length = 50, nullable = false)
     private String foodName;
 
-    @Column(name = "Original_Price")
-    private BigDecimal originalPrice;
+    @Column(name = "OriginalPrice")
+    private Long originalPrice;
 
-    @Column(name = "Sale_Price")
-    private BigDecimal salePrice;
+    @Column(name = "SalePrice")
+    private Long salePrice;
 
-    @Column(name = "Food_Image", length = 255)
+    @Column(name = "FoodImage", length = 255)
     private String foodImage;
 
     @Column(name = "Descriptions", length = 255)
     private String descriptions;
 
-    @Column(name = "Status_Food", length = 20, nullable = false)
-    private String statusFood;
+    @Column(name = "FoodStatus", nullable = false)
+    private Boolean foodStatus = true;
 
     // Relationships
     @ManyToMany

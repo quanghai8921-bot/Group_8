@@ -2,6 +2,8 @@ package com.group8.backend.controller;
 
 import com.group8.backend.dto.OrderRequestDTO;
 import com.group8.backend.dto.OrderResponseDTO;
+import com.group8.backend.dto.CheckoutRequestDTO;
+import com.group8.backend.dto.CheckoutResponseDTO;
 import com.group8.backend.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,16 @@ public class OrderController {
         response.put("success", true);
         response.put("message", "Order placed successfully");
         response.put("data", order);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/checkout")
+    public ResponseEntity<Map<String, Object>> checkout(@Valid @RequestBody CheckoutRequestDTO dto) {
+        CheckoutResponseDTO result = orderService.checkout(dto);
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Checkout completed successfully");
+        response.put("data", result);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

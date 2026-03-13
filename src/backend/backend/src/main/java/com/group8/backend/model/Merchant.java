@@ -5,7 +5,7 @@ import lombok.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "Merchant")
+@Table(name = "Merchants")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class Merchant {
@@ -14,7 +14,7 @@ public class Merchant {
     private String merchantId;
 
     @OneToOne
-    @JoinColumn(name = "User_ID", unique = true, nullable = false)
+    @JoinColumn(name = "UserID", unique = true, nullable = false)
     private User user;
 
     @Column(name = "Store_Name", length = 100, nullable = false)
@@ -30,10 +30,18 @@ public class Merchant {
     private java.time.LocalTime closeTime;
 
     @Column(name = "Active_Status", nullable = false)
-    private byte activeStatus;
+    private Boolean activeStatus = true;
 
     @Column(name = "Shop_Type", length = 50, nullable = false)
     private String shopType;
+
+    @PrePersist
+    public void generateId() {
+        if (this.merchantId == null) {
+            this.merchantId = com.group8.backend.config.IDGenerator.generateID();
+        }
+    }
+
 
     @Column(name = "Rating")
     private byte rating = 5;

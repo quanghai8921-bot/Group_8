@@ -4,19 +4,26 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "Cart_Item_Topping")
+@Table(name = "CartItemToppings")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class CartItemTopping {
     @Id
-    @Column(name = "Cart_Topping_ID", length = 10)
+    @Column(name = "CartToppingId", length = 10)
     private String cartToppingId;
 
     @ManyToOne
-    @JoinColumn(name = "Cart_Item_ID", nullable = false)
+    @JoinColumn(name = "CartItemId", nullable = false)
     private CartItem cartItem;
 
     @ManyToOne
-    @JoinColumn(name = "Topping_ID", nullable = false)
+    @JoinColumn(name = "ToppingId", nullable = false)
     private OptionTopping optionTopping;
+
+    @PrePersist
+    public void generateId() {
+        if (this.cartToppingId == null) {
+            this.cartToppingId = com.group8.backend.config.IDGenerator.generateID();
+        }
+    }
 }

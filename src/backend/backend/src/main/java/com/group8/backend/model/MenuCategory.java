@@ -5,19 +5,19 @@ import lombok.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "Menu_Category")
+@Table(name = "MenuCategories")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class MenuCategory {
     @Id
-    @Column(name = "Category_ID", length = 10)
+    @Column(name = "CategoryId", length = 10)
     private String categoryId;
 
     @ManyToOne
-    @JoinColumn(name = "Merchant_ID", nullable = false)
+    @JoinColumn(name = "MerchantId", nullable = false)
     private Merchant merchant;
 
-    @Column(name = "Name_Category", length = 50, nullable = false)
+    @Column(name = "NameCategory", length = 50, nullable = false)
     private String nameCategory;
 
     // Relationships

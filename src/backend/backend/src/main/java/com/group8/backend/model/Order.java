@@ -2,57 +2,66 @@ package com.group8.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Set;
 
 @Entity
-@Table(name = "[order]")
+@Table(name = "Orders")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class Order {
     @Id
-    @Column(name = "Order_ID", length = 10)
+    @Column(name = "OrderId", length = 10)
     private String orderId;
 
     @ManyToOne
-    @JoinColumn(name = "User_ID", nullable = false)
+    @JoinColumn(name = "UserId", nullable = false)
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "Merchant_ID", nullable = false)
+    @JoinColumn(name = "MerchantId", nullable = false)
     private Merchant merchant;
 
     @ManyToOne
-    @JoinColumn(name = "Driver_ID")
+    @JoinColumn(name = "DriverId") // Khớp với UserId của bảng Drivers
     private Driver driver;
 
     @ManyToOne
-    @JoinColumn(name = "Voucher_ID")
+    @JoinColumn(name = "VoucherId")
     private Voucher voucher;
 
-    @Column(name = "Order_Time")
+    @Column(name = "OrderTime")
     private LocalDateTime orderTime;
 
-    @Column(name = "Pickup_Time")
+    @Column(name = "PickupTime")
     private LocalDateTime pickupTime;
 
-    @Column(name = "Delivery_Time")
+    @Column(name = "DeliveryTime")
     private LocalDateTime deliveryTime;
 
-    @Column(name = "Food_Amount", nullable = false)
-    private BigDecimal foodAmount;
+    @Column(name = "FoodAmount", nullable = false)
+    private Long foodAmount;
 
-    @Column(name = "Shipping_Fee", nullable = false)
-    private BigDecimal shippingFee;
+    @Column(name = "ShippingFee", nullable = false)
+    private Long shippingFee;
 
-    @Column(name = "Discount_Amount")
-    private BigDecimal discountAmount = BigDecimal.ZERO;
+    // Trong SQL của bạn là FoodDiscount và ShipDiscount, 
+    // nhưng ở đây bạn dùng DiscountAmount cũng được, miễn là map đúng tên cột SQL
+    @Column(name = "FoodDiscount") 
+    private Long foodDiscount = 0L;
 
-    @Column(name = "Status")
-    private byte status = 1;
+    @Column(name = "ShipDiscount") 
+    private Long shipDiscount = 0L;
 
-    @Column(name = "Delivery_Address", length = 255, nullable = false)
+    @Column(name = "FinalAmount", insertable = false, updatable = false)
+    private Long finalAmount;
+
+    // QUAN TRỌNG: Sửa lại tên để khớp với DriverServiceImpl
+    // Trong SQL là OrderStatus BIT. Java map BIT thành Boolean hoặc boolean.
+    @Column(name = "OrderStatus")
+    private Boolean orderStatus = true; 
+
+    @Column(name = "DeliveryAddress", length = 255, nullable = false)
     private String deliveryAddress;
 
     // Relationships
@@ -64,4 +73,14 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private Set<Review> reviews;
+
+    @PrePersist
+    public void generateId() {
+        if (this.orderId == null) {
+            this.orderId = com.group8.backend.config.IDGenerator.generateID();
+        }
+        if (this.orderTime == null) {
+            this.orderTime = LocalDateTime.now();
+        }
+    }
 }

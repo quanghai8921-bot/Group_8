@@ -2,27 +2,27 @@ package com.group8.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
+// import java.math.BigDecimal;
 import java.util.Set;
 
 @Entity
-@Table(name = "Option_Topping")
+@Table(name = "ToppingOptions")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class OptionTopping {
     @Id
-    @Column(name = "Topping_ID", length = 10)
+    @Column(name = "ToppingId", length = 10)
     private String toppingId;
 
     @ManyToOne
-    @JoinColumn(name = "Merchant_ID", nullable = false)
+    @JoinColumn(name = "MerchantId", nullable = false)
     private Merchant merchant;
 
-    @Column(name = "Name_Option", length = 50)
+    @Column(name = "NameOption", length = 50)
     private String nameOption;
 
     @Column(name = "Surcharge")
-    private BigDecimal surcharge;
+    private Long surcharge;
 
     // Relationships
     @ManyToMany(mappedBy = "optionToppings")

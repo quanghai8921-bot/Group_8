@@ -48,9 +48,9 @@ public class CartServiceImpl implements CartService {
         FoodItem food = foodItemRepository.findById(dto.getFoodId())
                 .orElseThrow(() -> new RuntimeException("Food item not found"));
 
-        if ("OUT_OF_STOCK".equalsIgnoreCase(food.getStatusFood())) {
-            throw new RuntimeException("Food item is out of stock");
-        }
+       if (!food.getFoodStatus()) {
+    throw new RuntimeException("Food item is out of stock");
+}
 
         // Get or create cart
         Cart cart = cartRepository.findByUser_UserIdAndMerchant_MerchantId(dto.getUserId(), dto.getMerchantId())
@@ -59,8 +59,8 @@ public class CartServiceImpl implements CartService {
                     c.setCartId(generateId("CRT"));
                     c.setUser(user);
                     c.setMerchant(merchant);
-                    c.setCreateAt(LocalDateTime.now());
-                    c.setSubtotalPrice(BigDecimal.ZERO);
+                    c.setCreatedAt(LocalDateTime.now());
+                    c.setSubtotalPrice(0L);
                     return cartRepository.save(c);
                 });
 
@@ -136,7 +136,7 @@ public class CartServiceImpl implements CartService {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
         cartItemRepository.findByCart_CartId(cartId).forEach(cartItemRepository::delete);
-        cart.setSubtotalPrice(BigDecimal.ZERO);
+        cart.setSubtotalPrice(0L);
         cartRepository.save(cart);
     }
 
@@ -144,18 +144,18 @@ public class CartServiceImpl implements CartService {
         List<CartItem> items = cartItemRepository.findByCart_CartId(cart.getCartId());
         BigDecimal subtotal = BigDecimal.ZERO;
         for (CartItem ci : items) {
-            BigDecimal base = ci.getFoodItem().getSalePrice() != null ? ci.getFoodItem().getSalePrice() : ci.getFoodItem().getOriginalPrice();
+            BigDecimal base = ci.getFoodItem().getSalePrice() != null ? BigDecimal.valueOf(ci.getFoodItem().getSalePrice()) : BigDecimal.valueOf(ci.getFoodItem().getOriginalPrice());
             BigDecimal toppingSum = BigDecimal.ZERO;
             if (ci.getCartItemToppings() != null) {
                 for (CartItemTopping ct : ci.getCartItemToppings()) {
                     if (ct.getOptionTopping() != null && ct.getOptionTopping().getSurcharge() != null)
-                        toppingSum = toppingSum.add(ct.getOptionTopping().getSurcharge());
+                        toppingSum = toppingSum.add(BigDecimal.valueOf(ct.getOptionTopping().getSurcharge()));
                 }
             }
             BigDecimal itemTotal = base.add(toppingSum).multiply(BigDecimal.valueOf(ci.getQuantity()));
             subtotal = subtotal.add(itemTotal);
         }
-        cart.setSubtotalPrice(subtotal);
+        cart.setSubtotalPrice(subtotal.longValue());
     }
 
     private CartResponseDTO convertToDTO(Cart cart) {
@@ -172,8 +172,8 @@ public class CartServiceImpl implements CartService {
             ciDto.setFoodName(ci.getFoodItem().getFoodName());
             ciDto.setQuantity(ci.getQuantity());
             ciDto.setNote(ci.getNote());
-            BigDecimal base = ci.getFoodItem().getSalePrice() != null ? ci.getFoodItem().getSalePrice() : ci.getFoodItem().getOriginalPrice();
-            ciDto.setUnitPrice(base);
+            BigDecimal base = ci.getFoodItem().getSalePrice() != null ? BigDecimal.valueOf(ci.getFoodItem().getSalePrice()) : BigDecimal.valueOf(ci.getFoodItem().getOriginalPrice());
+            ciDto.setUnitPrice(base.longValue());
             BigDecimal toppingSum = BigDecimal.ZERO;
             List<CartItemToppingDTO> tDtos = new ArrayList<>();
             if (ci.getCartItemToppings() != null) {
@@ -184,12 +184,12 @@ public class CartServiceImpl implements CartService {
                     tDto.setSurcharge(ct.getOptionTopping().getSurcharge());
                     tDtos.add(tDto);
                     if (ct.getOptionTopping().getSurcharge() != null)
-                        toppingSum = toppingSum.add(ct.getOptionTopping().getSurcharge());
+                        toppingSum = toppingSum.add(BigDecimal.valueOf(ct.getOptionTopping().getSurcharge()));
                 }
             }
             ciDto.setToppings(tDtos);
             BigDecimal total = base.add(toppingSum).multiply(BigDecimal.valueOf(ci.getQuantity()));
-            ciDto.setTotalPrice(total);
+            ciDto.setTotalPrice(total.longValue());
             return ciDto;
         }).collect(Collectors.toList());
         dto.setItems(items);

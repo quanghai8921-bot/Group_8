@@ -5,20 +5,20 @@ import lombok.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "Cart_Item")
+@Table(name = "CartItems")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class CartItem {
     @Id
-    @Column(name = "Cart_Item_ID", length = 10)
+    @Column(name = "CartItemId", length = 10)
     private String cartItemId;
 
     @ManyToOne
-    @JoinColumn(name = "Cart_ID", nullable = false)
+    @JoinColumn(name = "CartId", nullable = false)
     private Cart cart;
 
     @ManyToOne
-    @JoinColumn(name = "Food_ID", nullable = false)
+    @JoinColumn(name = "FoodId", nullable = false)
     private FoodItem foodItem;
 
     @Column(name = "Quantity", nullable = false)
@@ -30,4 +30,11 @@ public class CartItem {
     // Relationships
     @OneToMany(mappedBy = "cartItem", cascade = CascadeType.ALL)
     private Set<CartItemTopping> cartItemToppings;
+
+    @PrePersist
+    public void generateId() {
+        if (this.cartItemId == null) {
+            this.cartItemId = com.group8.backend.config.IDGenerator.generateID();
+        }
+    }
 }

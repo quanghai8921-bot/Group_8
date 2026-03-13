@@ -21,7 +21,7 @@ public class FoodServiceImpl implements FoodService {
     public List<FoodItemDTO> getFoodByMerchant(String merchantId) {
         return foodItemRepository.findByMenuCategory_Merchant_MerchantId(merchantId)
                 .stream()
-                .filter(food -> "Available".equalsIgnoreCase(food.getStatusFood()))
+                .filter(food -> food.getFoodStatus() != null && food.getFoodStatus())
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -30,7 +30,7 @@ public class FoodServiceImpl implements FoodService {
     public List<FoodItemDTO> getFoodByCategory(String categoryId) {
         return foodItemRepository.findByMenuCategory_CategoryId(categoryId)
                 .stream()
-                .filter(food -> "Available".equalsIgnoreCase(food.getStatusFood()))
+                .filter(food -> food.getFoodStatus() != null && food.getFoodStatus())
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -48,7 +48,7 @@ public class FoodServiceImpl implements FoodService {
     public List<FoodItemDTO> getAllAvailableFood() {
         return foodItemRepository.findAll()
                 .stream()
-                .filter(food -> "Available".equalsIgnoreCase(food.getStatusFood()))
+                .filter(food -> food.getFoodStatus() != null && food.getFoodStatus())
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -57,8 +57,8 @@ public class FoodServiceImpl implements FoodService {
         FoodItemDTO dto = new FoodItemDTO();
         dto.setFoodId(food.getFoodId());
         dto.setFoodName(food.getFoodName());
-        dto.setOriginalPrice(food.getOriginalPrice());
-        dto.setSalePrice(food.getSalePrice());
+        dto.setOriginalPrice(new java.math.BigDecimal(food.getOriginalPrice()));
+        dto.setSalePrice(new java.math.BigDecimal(food.getSalePrice()));
         dto.setFoodImage(food.getFoodImage());
         dto.setDescriptions(food.getDescriptions());
         dto.setCategoryId(food.getMenuCategory().getCategoryId());

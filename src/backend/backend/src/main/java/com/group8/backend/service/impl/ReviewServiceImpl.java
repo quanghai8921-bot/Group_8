@@ -24,7 +24,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Transactional
     public void submitReview(ReviewDTO dto) {
         Order order = orderRepository.findById(dto.getOrderId()).orElseThrow(() -> new RuntimeException("Order not found"));
-        if (order.getStatus() != 4) {
+        if (!order.getOrderStatus()) {
             throw new RuntimeException("Order is not completed; cannot submit review");
         }
         Review r = new Review();

@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface VoucherRepository extends JpaRepository<Voucher, Integer> {
+public interface VoucherRepository extends JpaRepository<Voucher, String> {
     Optional<Voucher> findByVoucherCode(String code);
 }

@@ -33,9 +33,9 @@ export default function CartPage() {
 
   function handleQuantityChange(itemId: number, newQuantity: number) {
     if (newQuantity <= 0) {
-      deleteItemFromCart(itemId);
+      deleteItemFromCart(String(itemId));
     } else {
-      changeItemQuantity(itemId, newQuantity);
+      changeItemQuantity(String(itemId), newQuantity);
     }
   }
 
@@ -141,7 +141,7 @@ export default function CartPage() {
                           size="icon"
                           className="h-10 w-10 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                           onClick={function () {
-                            deleteItemFromCart(item.id);
+                            deleteItemFromCart(String(item.id));
                           }}
                         >
                           <Trash2 className="w-5 h-5" />

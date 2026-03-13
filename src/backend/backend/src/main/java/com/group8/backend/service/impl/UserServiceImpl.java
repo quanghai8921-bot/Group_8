@@ -7,6 +7,7 @@ import com.group8.backend.model.User;
 import com.group8.backend.repository.UserRepository;
 import com.group8.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
@@ -17,6 +18,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
     @Override
     public UserResponseDTO register(UserRegistrationDTO dto) {
@@ -33,13 +37,13 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = new User();
-        user.setUserId(dto.getUserId());
+        // userId will be generated automatically via @PrePersist
         user.setFullName(dto.getFullName());
         user.setEmail(dto.getEmail());
         user.setPhoneNumber(dto.getPhoneNumber());
-        user.setPassword(dto.getPassword());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setAddressDelivery(dto.getAddressDelivery());
-        user.setShopeeCoins(0);
+        user.setShopeeCoins(0L);
 
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
@@ -60,7 +64,7 @@ public class UserServiceImpl implements UserService {
         }
 
         User foundUser = user.get();
-        if (!foundUser.getPassword().equals(dto.getPassword())) {
+        if (!passwordEncoder.matches(dto.getPassword(), foundUser.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
@@ -106,7 +110,7 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setAddressDelivery(user.getAddressDelivery());
-        dto.setShopeeCoins(user.getShopeeCoins());
+        dto.setShopeeCoins(user.getShopeeCoins().intValue());
         return dto;
     }
 }

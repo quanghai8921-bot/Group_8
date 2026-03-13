@@ -5,7 +5,7 @@ import lombok.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "[Role]")
+@Table(name = "Roles")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class Role {
@@ -15,6 +15,13 @@ public class Role {
 
     @Column(name = "Role_Name", length = 50, nullable = false)
     private String roleName;
+
+    @PrePersist
+    public void generateId() {
+        if (this.roleId == null) {
+            this.roleId = com.group8.backend.config.IDGenerator.generateID();
+        }
+    }
 
     // Relationship N-N with User
     @ManyToMany(mappedBy = "roles")

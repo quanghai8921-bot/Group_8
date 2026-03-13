@@ -2,31 +2,38 @@ package com.group8.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
+// import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Payment")
+@Table(name = "Payments")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class Payment {
     @Id
-    @Column(name = "Payment_ID", length = 10)
+    @Column(name = "PaymentId", length = 10)
     private String paymentId;
 
     @OneToOne
-    @JoinColumn(name = "Order_ID", unique = true, nullable = false)
+    @JoinColumn(name = "OrderID", unique = true, nullable = false)
     private Order order;
 
     @Column(name = "Amount", nullable = false)
-    private BigDecimal amount;
+    private Long amount;
 
-    @Column(name = "Payment_Method", length = 50)
+    @Column(name = "PaymentMethod", length = 50)
     private String paymentMethod;
 
-    @Column(name = "Payment_Date")
+    @Column(name = "PaymentDate")
     private LocalDateTime paymentDate;
 
     @Column(name = "Status", length = 20)
     private String status;
+
+    @PrePersist
+    public void generateId() {
+        if (this.paymentId == null) {
+            this.paymentId = com.group8.backend.config.IDGenerator.generateID();
+        }
+    }
 }

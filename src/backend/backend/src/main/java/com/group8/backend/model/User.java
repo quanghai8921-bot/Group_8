@@ -6,41 +6,51 @@ import java.util.Date;
 import java.util.Set;
 
 @Entity
-@Table(name = "[User]")
+@Table(name = "Users")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class User {
     @Id
-    @Column(name = "User_ID", length = 10)
+    @Column(name = "UserId", length = 10)
     private String userId;
 
-    @Column(name = "Full_Name", length = 50, nullable = false)
+    @Column(name = "FullName", length = 50, nullable = false)
     private String fullName;
 
-    @Column(name = "Birth_Date", nullable = false)
+    @Column(name = "BirthDate", nullable = false)
     private Date birthDate;
 
-    @Column(name = "Phone_Number", length = 10, unique = true, nullable = false)
+    @Column(name = "PhoneNumber", length = 10, unique = true, nullable = false)
     private String phoneNumber;
 
     @Column(name = "Email", length = 50, unique = true, nullable = false)
     private String email;
 
-    @Column(name = "Passwords", length = 30, nullable = false)
-    private String password;
-
-    @Column(name = "Address_Delivery", length = 100, nullable = false)
+    @Column(name = "AddressDelivery", length = 100, nullable = false)
     private String addressDelivery;
 
-    @Column(name = "Shopee_Coins")
-    private Integer shopeeCoins = 0;
+    @Column(name = "Passwords", length = 255, nullable = false)
+    private String password;
+
+    @Column(name = "ShopeeCoins")
+    private Long shopeeCoins = 0L;
+
+    @Column(name = "IsActive")
+    private Boolean isActive = true;
+
+    @PrePersist
+    public void generateId() {
+        if (this.userId == null) {
+            this.userId = com.group8.backend.config.IDGenerator.generateID();
+        }
+    }
 
     // Relationships
     @ManyToMany
     @JoinTable(
-        name = "User_Role_Mapping",
-        joinColumns = @JoinColumn(name = "User_ID"),
-        inverseJoinColumns = @JoinColumn(name = "Role_ID")
+        name = "UserRoles",
+        joinColumns = @JoinColumn(name = "UserId"),
+        inverseJoinColumns = @JoinColumn(name = "RoleId")
     )
     private Set<Role> roles;
 

@@ -2,29 +2,35 @@ package com.group8.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.math.BigDecimal;
+// import java.math.BigDecimal;
 
 @Entity
-@Table(name = "Order_Detail_Topping")
+@Table(name = "OrderItemToppings")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class OrderDetailTopping {
     @Id
-    @Column(name = "OD_Topping_ID", length = 10)
+    @Column(name = "OdToppingId", length = 10)
     private String odToppingId;
 
     @ManyToOne
-@JoinColumn(name = "option_topping_id")
-private OptionTopping optionTopping;
+    @JoinColumn(name = "OptionToppingId", nullable = false)
+    private OptionTopping optionTopping;
 
-    
     @ManyToOne
-    @JoinColumn(name = "Order_Detail_ID", nullable = false)
+    @JoinColumn(name = "OrderDetailId", nullable = false)
     private OrderDetail orderDetail;
 
-    @Column(name = "Topping_Name", length = 100, nullable = false)
+    @Column(name = "ToppingName", length = 100, nullable = false)
     private String toppingName;
 
-    @Column(name = "Topping_Price", nullable = false)
-    private BigDecimal toppingPrice;
+    @Column(name = "ToppingPrice", nullable = false)
+    private Long toppingPrice;
+
+    @PrePersist
+    public void generateId() {
+        if (this.odToppingId == null) {
+            this.odToppingId = com.group8.backend.config.IDGenerator.generateID();
+        }
+    }
 }

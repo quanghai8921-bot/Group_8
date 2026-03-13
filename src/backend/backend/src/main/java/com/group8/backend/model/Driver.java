@@ -2,43 +2,48 @@ package com.group8.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDate;
 import java.util.Set;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "Driver")
+@Table(name = "Drivers")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class Driver {
     @Id
-    @Column(name = "Driver_ID", length = 10)
-    private String driverId;
+    @Column(name = "UserId", length = 10)
+    private String userId;
 
+    // Quan hệ 1-1 với bảng Users (Shared Primary Key)
     @OneToOne
-    @JoinColumn(name = "User_ID", unique = true, nullable = false)
+    @MapsId
+    @JoinColumn(name = "UserId")
     private User user;
-
-    @Column(name = "Full_Name", length = 50, nullable = false)
-    private String fullName;
-
-    @Column(name = "Birth_Date", nullable = false)
-    private LocalDate birthDate;
-
-    @Column(name = "Phone_Number", length = 10, unique = true, nullable = false)
-    private String phoneNumber;
 
     @Column(name = "LicensePlate", length = 15, nullable = false)
     private String licensePlate;
 
-    @Column(name = "Vehicle_Type", length = 50)
+    @Column(name = "VehicleType", length = 50, nullable = false)
     private String vehicleType;
 
-    @Column(name = "Is_Verified")
-    private boolean isVerified = false;
+    @Column(name = "IsOnline", nullable = false)
+    private Boolean isOnline = true;
 
-    // Relationships
-    @OneToOne(mappedBy = "driver", cascade = CascadeType.ALL)
-    private DriverLocation driverLocation;
+    // Tọa độ được lưu trực tiếp tại đây theo Schema của bạn
+    @Column(name = "Latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "Longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
+
+    @Column(name = "UpdatedAt")
+    private LocalDateTime updatedAt;
+
+    // IsActive/IsVerified tùy theo thiết kế logic của bạn
+    @Transient
+    @Column(name = "IsVerified")
+    private Boolean isVerified = false;
 
     @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL)
     private Set<Order> orders;
