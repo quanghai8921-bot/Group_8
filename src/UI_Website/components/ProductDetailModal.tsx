@@ -42,19 +42,19 @@ export default function ProductDetailModal({
   const handleToppingToggle = (topping: ToppingOption) => {
     setSelectedToppings((prev) => {
       const isSelected = prev.some(
-        (t) => t.toppingName === topping.toppingName,
+        (t) => t.ToppingId === topping.ToppingId,
       );
       if (isSelected) {
-        return prev.filter((t) => t.toppingName !== topping.toppingName);
+        return prev.filter((t) => t.ToppingId !== topping.ToppingId);
       }
       return [...prev, topping];
     });
   };
 
   const calculateTotalPrice = () => {
-    const basePrice = parsePrice(product.price);
+    const basePrice = product.SalePrice || product.OriginalPrice || 0;
     const toppingPrice = selectedToppings.reduce(
-      (sum, t) => sum + parsePrice(t.price),
+      (sum, t) => sum + t.Price,
       0,
     );
     return (basePrice + toppingPrice) * quantity;
@@ -67,7 +67,7 @@ export default function ProductDetailModal({
     }
     cart.addToCart(product, quantity, selectedToppings);
     onClose();
-    alert(`Đã thêm ${quantity} ${product.name} vào giỏ hàng!`);
+    alert(`Đã thêm ${quantity} ${product.FoodName} vào giỏ hàng!`);
   };
 
   const handleBuyNow = () => {
@@ -86,8 +86,8 @@ export default function ProductDetailModal({
           {/* Image Section - Now on Top */}
           <div className="w-full h-72 relative shrink-0">
             <img
-              src={product.image}
-              alt=""
+              src={product.FoodImage}
+              alt={product.FoodName}
               className="w-full h-full object-cover"
             />
             {product.discount && (
@@ -102,17 +102,17 @@ export default function ProductDetailModal({
           <div className="w-full p-6 flex flex-col gap-6 bg-white">
             <div>
               <Link
-                href={`/store/${product.merchantId}`}
+                href={`/store/${product.MerchantId}`}
                 className="flex items-center gap-2 text-[#ee4d2d] font-bold text-xs uppercase tracking-widest mb-2 hover:opacity-80 transition-opacity"
               >
                 <Store className="w-4 h-4" />
-                {product.merchantName}
+                {product.merchantName || "Cửa hàng"}
               </Link>
               <DialogTitle className="text-2xl font-black text-gray-900 leading-tight mb-2">
-                {product.name}
+                {product.FoodName}
               </DialogTitle>
               <p className="text-gray-500 text-sm leading-relaxed">
-                {product.description}
+                {product.Descriptions}
               </p>
             </div>
 
@@ -130,11 +130,11 @@ export default function ProductDetailModal({
                 <div className="space-y-2">
                   {product.toppingOptions.map((topping) => {
                     const isSelected = !!selectedToppings.find(
-                      (t) => t.toppingName === topping.toppingName,
+                      (t) => t.ToppingId === topping.ToppingId,
                     );
                     return (
                       <div
-                        key={topping.toppingName}
+                        key={topping.ToppingId}
                         className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group ${
                           isSelected
                             ? "border-[#ee4d2d]/30 bg-orange-50/50"
@@ -157,11 +157,11 @@ export default function ProductDetailModal({
                           <span
                             className={`text-sm font-bold transition-colors ${isSelected ? "text-[#ee4d2d]" : "text-gray-700"}`}
                           >
-                            {topping.toppingName}
+                            {topping.ToppingName}
                           </span>
                         </div>
                         <span className="text-sm font-black text-[#ee4d2d]">
-                          +{topping.price}
+                          +{topping.Price.toLocaleString("vi-VN")}đ
                         </span>
                       </div>
                     );

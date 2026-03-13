@@ -4,16 +4,17 @@ import React, { createContext, useContext, useEffect, useState, useMemo } from "
 
 // Types
 export interface ToppingOption {
-    toppingName: string;
-    price: string;
+    ToppingId: string;
+    ToppingName: string;
+    Price: number;
 }
 
 export type CartItem = {
-    id: number;
-    name: string;
-    price: string;
-    image: string;
-    quantity: number;
+    FoodId: string;
+    FoodName: string;
+    Price: number;
+    FoodImage: string;
+    Quantity: number;
     selectedToppings?: ToppingOption[];
 };
 
@@ -28,8 +29,10 @@ type CartContextType = {
 };
 
 // Utilities
-export const parsePrice = (priceStr: string) => {
-    return parseInt(priceStr.replace(/\D/g, ""), 10);
+export const parsePrice = (price: any) => {
+    if (typeof price === 'number') return price;
+    if (typeof price === 'string') return parseInt(price.replace(/\D/g, ""), 10) || 0;
+    return 0;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -62,41 +65,65 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }, [cart, isMounted]);
 
     // Tạo key duy nhất để phân biệt các sản phẩm khác topping
-    const generateItemKey = (productId: number, toppings?: ToppingOption[]) => {
-        if (!toppings || toppings.length === 0) return `${productId}`;
-        const toppingStr = toppings.map(t => t.toppingName).sort().join(",");
-        return `${productId}-${toppingStr}`;
+    const generateItemKey = (productId: string, toppings?: ToppingOption[]) => {
+        const id = productId || "unknown";
+        if (!toppings || toppings.length === 0) return `${id}`;
+        const toppingStr = toppings.map(t => t.ToppingName).sort().join(",");
+        return `${id}-${toppingStr}`;
     };
 
     const addToCart = (product: any, quantity: number, selectedToppings?: ToppingOption[]) => {
+        if (!product) return;
+
+        // Map from API Product to CartItem format
+        const foodId = product.FoodId || product.id; 
+        const foodName = product.FoodName || product.name;
+        
+        // Critical validation: must have ID and Name
+        if (!foodId || !foodName) {
+            console.error("Invalid product added to cart:", product);
+            return;
+        }
+
+        const price = parsePrice(product.SalePrice || product.OriginalPrice || product.Price || product.price);
+        const image = product.FoodImage || product.image || "";
+        const validQuantity = Math.max(1, quantity || 1);
+
         setCart(prev => {
-            const newItemKey = generateItemKey(product.id, selectedToppings);
+            const newItemKey = generateItemKey(foodId, selectedToppings);
             const existingIndex = prev.findIndex(item =>
-                generateItemKey(item.id, item.selectedToppings) === newItemKey
+                generateItemKey(item.FoodId, item.selectedToppings) === newItemKey
             );
 
             if (existingIndex !== -1) {
                 return prev.map((item, index) =>
                     index === existingIndex
-                        ? { ...item, quantity: item.quantity + quantity }
+                        ? { ...item, Quantity: (item.Quantity || 0) + validQuantity }
                         : item
                 );
             }
-            return [...prev, { ...product, quantity, selectedToppings }];
+            return [...prev, { 
+                FoodId: foodId, 
+                FoodName: foodName, 
+                Price: price, 
+                FoodImage: image, 
+                Quantity: validQuantity, 
+                selectedToppings 
+            }];
         });
     };
 
     const removeFromCart = (tempId: string) => {
         setCart(prev => prev.filter(item =>
-            generateItemKey(item.id, item.selectedToppings) !== tempId
+            generateItemKey(item.FoodId, item.selectedToppings) !== tempId
         ));
     };
 
     const updateQuantity = (tempId: string, quantity: number) => {
         if (quantity < 1) return;
         setCart(prev => prev.map(item =>
-            generateItemKey(item.id, item.selectedToppings) === tempId
-                ? { ...item, quantity }
+            generateItemKey(item.FoodId, item.selectedToppings) === tempId
+                ? { ...item, Quantity: quantity }
                 : item
         ));
     };
@@ -105,16 +132,27 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Derived State
     const totalItems = useMemo(() =>
-        cart.reduce((sum, item) => sum + item.quantity, 0),
+        cart.reduce((sum, item) => sum + item.Quantity, 0),
         [cart]);
 
     const totalPrice = useMemo(() =>
         cart.reduce((sum, item) => {
-            const basePrice = parsePrice(item.price);
-            const toppingPrice = item.selectedToppings?.reduce((tSum, t) => tSum + parsePrice(t.price), 0) || 0;
-            return sum + (basePrice + toppingPrice) * item.quantity;
+            const basePrice = Number(item.Price) || 0;
+            const toppingPrice = item.selectedToppings?.reduce((tSum, t) => tSum + (Number(t.Price) || 0), 0) || 0;
+            const quantity = Number(item.Quantity) || 0;
+            return sum + (basePrice + toppingPrice) * quantity;
         }, 0),
         [cart]);
+    
+    // Cleanup: Remove invalid items that might have leaked into the cart
+    useEffect(() => {
+        if (isMounted && cart.length > 0) {
+            const hasInvalidItems = cart.some(item => !item.FoodId || !item.FoodName);
+            if (hasInvalidItems) {
+                setCart(prev => prev.filter(item => item.FoodId && item.FoodName));
+            }
+        }
+    }, [cart, isMounted]);
 
     return (
         <CartContext.Provider

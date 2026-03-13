@@ -1,0 +1,6 @@
+{
+  "UserId": "user123",
+  "AvailableCoins": 15000,
+  "MaxRedeemablePerOrder": 10400,
+  "CoinValueInVND": 1
+}

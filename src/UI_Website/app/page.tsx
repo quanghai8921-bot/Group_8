@@ -4,17 +4,35 @@ import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
 import HeroSlider from "@/components/HeroSlider";
 import CategoryList from "@/components/CategoryList";
-import { products } from "@/lib/data";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { getMockProducts } from "@/lib/apiClient";
+import { Product } from "@/lib/data";
 
 function HomeContent() {
+  const [productList, setProductList] = useState<Product[]>([]);
+  const [isLoadingItems, setIsLoadingItems] = useState(true);
   const urlSearchParams = useSearchParams();
   const activeSearchQuery = urlSearchParams.get("search") || "";
 
+  useEffect(() => {
+    const fetchInitialProducts = async () => {
+      setIsLoadingItems(true);
+      try {
+        const data = await getMockProducts();
+        setProductList(data);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        setIsLoadingItems(false);
+      }
+    };
+    fetchInitialProducts();
+  }, []);
+
   function getMatchingProducts() {
-    return products.filter(function checkProductMatch(productItem) {
-      const lowerCasedProductName = productItem.name.toLowerCase();
+    return productList.filter(function checkProductMatch(productItem) {
+      const lowerCasedProductName = productItem.FoodName.toLowerCase();
       const lowerCasedSearchQuery = activeSearchQuery.toLowerCase();
 
       const isNameMatched = lowerCasedProductName.includes(
@@ -28,7 +46,7 @@ function HomeContent() {
 
   function renderProductCards() {
     return visibleProductsList.map(function createProductCard(productItem) {
-      return <ProductCard key={productItem.id} product={productItem} />;
+      return <ProductCard key={productItem.FoodId} product={productItem} />;
     });
   }
 
@@ -40,14 +58,17 @@ function HomeContent() {
       <Navbar />
 
       <div className="container mx-auto py-12 px-4 flex-grow">
-        {}
+        {/* Hero & Categories */}
         <HeroSlider />
-
-        {}
         <CategoryList />
 
-        {}
-        {visibleProductsList.length > 0 ? (
+        {/* Product Grid */}
+        {isLoadingItems ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+             <div className="h-12 w-12 border-4 border-[#ee4d2d]/10 border-t-[#ee4d2d] rounded-full animate-spin" />
+             <p className="font-black uppercase tracking-widest text-[#ee4d2d]">Đang tải món ăn ngon...</p>
+          </div>
+        ) : visibleProductsList.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mt-10">
             {productGridElements}
           </div>

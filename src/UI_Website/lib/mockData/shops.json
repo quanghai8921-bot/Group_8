@@ -1,0 +1,41 @@
+[
+  {
+    "MerchantId": "M001",
+    "UserId": "U002",
+    "StoreName": "ShopeeFood Official",
+    "StoreAddress": "123 Đường ABC, Quận 1, TP.HCM",
+    "OpenTime": "08:00:00",
+    "CloseTime": "22:00:00",
+    "ActiveStatus": 1,
+    "ShopType": "Food",
+    "ownerName": "Trần Thị B",
+    "revenue": 12500000,
+    "totalOrders": 156
+  },
+  {
+    "MerchantId": "M002",
+    "UserId": "U005",
+    "StoreName": "Bún Chả Hà Nội Q.1",
+    "StoreAddress": "456 Đường DEF, Quận 1, TP.HCM",
+    "OpenTime": "07:00:00",
+    "CloseTime": "21:00:00",
+    "ActiveStatus": 1,
+    "ShopType": "Food",
+    "ownerName": "Hoàng Anh E",
+    "revenue": 4200000,
+    "totalOrders": 52
+  },
+  {
+    "MerchantId": "M003",
+    "UserId": "U006",
+    "StoreName": "Trà Sữa Koi Thé",
+    "StoreAddress": "789 Đường GHI, Quận 7, TP.HCM",
+    "OpenTime": "09:00:00",
+    "CloseTime": "22:00:00",
+    "ActiveStatus": 0,
+    "ShopType": "Drink",
+    "ownerName": "Trương Văn F",
+    "revenue": 8900000,
+    "totalOrders": 110
+  }
+]

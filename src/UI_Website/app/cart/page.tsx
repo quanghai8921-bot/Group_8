@@ -31,12 +31,18 @@ export default function CartPage() {
     }).format(amount);
   }
 
-  function handleQuantityChange(itemId: number, newQuantity: number) {
+  function handleQuantityChange(item: any, newQuantity: number) {
+    const toppings = item.selectedToppings || [];
+    const finalKey = toppings.length > 0 
+      ? `${item.FoodId}-${toppings.map((t: any) => t.ToppingName).sort().join(",")}` 
+      : item.FoodId;
+    
     if (newQuantity <= 0) {
-      deleteItemFromCart(String(itemId));
+      deleteItemFromCart(finalKey);
     } else {
-      changeItemQuantity(String(itemId), newQuantity);
-    }
+      changeItemQuantity(finalKey, newQuantity);
+      deleteItemFromCart(finalKey);
+    } 
   }
 
   const handleCheckout = () => {
@@ -76,23 +82,23 @@ export default function CartPage() {
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                 <div className="space-y-8">
-                  {itemsInCart.map(function (item) {
+                   {itemsInCart.map(function (item) {
                     return (
                       <div
-                        key={item.id}
+                        key={item.FoodId}
                         className="flex flex-col sm:flex-row items-center gap-6 border-b border-gray-50 pb-8 last:border-0 last:pb-0 group"
                       >
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={item.FoodImage}
+                          alt={item.FoodName}
                           className="w-28 h-28 object-cover rounded-2xl shadow-sm group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="flex-1 text-center sm:text-left">
                           <h3 className="font-bold text-xl text-gray-900 mb-1">
-                            {item.name}
+                            {item.FoodName}
                           </h3>
                           <p className="text-gray-500 font-medium">
-                            Đơn giá: {item.price}
+                            Đơn giá: {(item.Price || 0).toLocaleString("vi-VN")}đ
                           </p>
                         </div>
                         <div className="flex items-center gap-3 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
@@ -101,7 +107,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-9 w-9 rounded-lg hover:bg-white hover:shadow-sm text-gray-600 transition-all font-bold"
                             onClick={function () {
-                              handleQuantityChange(item.id, item.quantity - 1);
+                              handleQuantityChange(item, item.Quantity - 1);
                             }}
                           >
                             -
@@ -109,11 +115,11 @@ export default function CartPage() {
                           <Input
                             type="number"
                             min={1}
-                            value={item.quantity}
+                            value={item.Quantity}
                             onChange={function (e) {
                               handleQuantityChange(
-                                item.id,
-                                Number(e.target.value),
+                                item.FoodId,
+                                Number(e.target.value) || 1,
                               );
                             }}
                             className="w-14 h-9 text-center bg-transparent border-none focus-visible:ring-0 font-bold text-gray-900"
@@ -123,7 +129,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-9 w-9 rounded-lg hover:bg-white hover:shadow-sm text-gray-600 transition-all font-bold"
                             onClick={function () {
-                              handleQuantityChange(item.id, item.quantity + 1);
+                              handleQuantityChange(item, item.Quantity + 1);
                             }}
                           >
                             +
@@ -131,9 +137,7 @@ export default function CartPage() {
                         </div>
                         <div className="text-right min-w-[140px]">
                           <p className="font-bold text-xl text-[#ee4d2d]">
-                            {formatVNDCurrency(
-                              parsePrice(item.price) * item.quantity,
-                            )}
+                            {formatVNDCurrency((Number(item.Price) || 0) * (Number(item.Quantity) || 0))}
                           </p>
                         </div>
                         <Button
@@ -141,7 +145,12 @@ export default function CartPage() {
                           size="icon"
                           className="h-10 w-10 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                           onClick={function () {
-                            deleteItemFromCart(String(item.id));
+                            deleteItemFromCart(item.FoodId);
+                            const toppings = item.selectedToppings || [];
+                            const finalKey = toppings.length > 0 
+                              ? `${item.FoodId}-${toppings.map((t: any) => t.ToppingName).sort().join(",")}` 
+                              : item.FoodId;
+                            deleteItemFromCart(finalKey);
                           }}
                         >
                           <Trash2 className="w-5 h-5" />

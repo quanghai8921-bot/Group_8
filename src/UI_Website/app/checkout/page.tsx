@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getMockUserCoins } from "@/lib/apiClient";
 
 export default function CheckoutPage() {
   const {
@@ -39,14 +40,20 @@ export default function CheckoutPage() {
 
   const [wasOrderSuccessful, setWasOrderSuccessful] = useState(false);
   const [generatedOrderCode, setGeneratedOrderCode] = useState("");
+  const [userCoins, setUserCoins] = useState<any>(null);
 
   useEffect(function onPageMount() {
     const randomDigits = Math.floor(100000 + Math.random() * 900000);
     setGeneratedOrderCode("SHOPEEFOOD_" + randomDigits);
+
+    // Fetch mock user coins
+    const userId = localStorage.getItem("userId") || "user123";
+    getMockUserCoins(userId).then(setUserCoins).catch(err => console.error("Error fetching coins:", err));
   }, []);
 
   const fixedShippingFee = 15000;
-  const shopeeXuDiscount = shouldUseShopeeXu ? 10000 : 0;
+  const discountableAmount = userCoins?.MaxRedeemablePerOrder || 0;
+  const shopeeXuDiscount = shouldUseShopeeXu ? discountableAmount : 0;
   const finalBillAmount =
     totalGoodsAmount + fixedShippingFee - shopeeXuDiscount;
 
@@ -214,21 +221,32 @@ export default function CheckoutPage() {
               </div>
               <div className="divide-y divide-gray-50 px-4 md:px-0">
                 {itemsToPurchase.map(function (item) {
+                  const toppings = item.selectedToppings || [];
+                  const itemKey = item.FoodId + (toppings.map((t: any) => t.ToppingName).sort().join(",") || "");
+                  const basePrice = Number(item.Price) || 0;
+                  const toppingPrice = toppings.reduce((sum: number, t: any) => sum + (Number(t.Price) || 0), 0);
+                  const itemTotal = (basePrice + toppingPrice) * (Number(item.Quantity) || 0);
+
                   return (
                     <div
-                      key={item.id}
+                      key={itemKey}
                       className="p-6 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 hover:bg-gray-50/50 transition-colors"
                     >
                       <div className="flex items-center gap-4 flex-1 w-full">
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={item.FoodImage}
+                          alt={item.FoodName}
                           className="w-16 h-16 object-cover rounded-xl border border-gray-100 shadow-sm"
                         />
                         <div className="flex-1">
                           <p className="font-bold text-gray-800 text-base">
-                            {item.name}
+                            {item.FoodName}
                           </p>
+                          {toppings.length > 0 && (
+                            <p className="text-[10px] text-gray-400 font-medium">
+                              + {toppings.map((t: any) => t.ToppingName).join(", ")}
+                            </p>
+                          )}
                           <p className="text-[10px] text-blue-500 font-black bg-blue-50 inline-block px-2 py-0.5 rounded-full mt-1 border border-blue-100 uppercase tracking-tighter">
                             Best Choice
                           </p>
@@ -236,15 +254,13 @@ export default function CheckoutPage() {
                       </div>
                       <div className="flex items-center justify-between w-full md:w-auto md:gap-16 text-sm">
                         <p className="md:w-20 text-right font-medium text-gray-500">
-                          {item.price}
+                          {formatVNDPrice(basePrice + toppingPrice)}
                         </p>
                         <p className="md:w-16 text-center font-bold text-gray-900">
-                          x{item.quantity}
+                          x{item.Quantity}
                         </p>
                         <p className="md:w-24 text-right font-black text-[#ee4d2d] text-base">
-                          {formatVNDPrice(
-                            parsePrice(item.price) * item.quantity,
-                          )}
+                          {formatVNDPrice(itemTotal)}
                         </p>
                       </div>
                     </div>
@@ -355,10 +371,10 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex flex-col">
                       <span className="font-bold text-gray-800 text-sm">
-                        Dùng 10.000 Shopee Xu
+                        Dùng {discountableAmount.toLocaleString("vi-VN")} Shopee Xu
                       </span>
                       <span className="text-[10px] text-gray-400 font-medium">
-                        Tiết kiệm {formatVNDPrice(10000)}
+                        Tiết kiệm {formatVNDPrice(discountableAmount)}
                       </span>
                     </div>
                   </div>
@@ -392,7 +408,7 @@ export default function CheckoutPage() {
                         <span>Shopee Xu đã dùng:</span>
                       </div>
                       <span className="text-[#ee4d2d] font-bold">
-                        -{formatVNDPrice(10000)}
+                        -{formatVNDPrice(discountableAmount)}
                       </span>
                     </div>
                   )}

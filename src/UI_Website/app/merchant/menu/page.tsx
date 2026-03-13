@@ -25,7 +25,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
   Plus,
@@ -43,64 +42,64 @@ import {
   Leaf,
   Fish,
 } from "lucide-react";
+import { getMockDishes } from "@/lib/apiClient";
 
 // Types
 export interface ToppingOption {
-  toppingName: string;
-  price: string;
+  ToppingId: string;
+  ToppingName: string;
+  Price: number;
 }
 
 export interface Category {
-  categoryid: string;
-  categoryname: string;
+  CategoryId: string;
+  CategoryName: string;
 }
 
 export interface Dish {
-  id: string;
-  storeName: string;
-  openTime: string;
-  closeTime: string;
-  shopType: "Food" | "Drink";
-  categoryId: string;
-  merchantId: string;
-  foodName: string;
-  originalPrice: string;
-  salePrice: string;
-  foodImage: string;
-  descriptions: string;
-  foodStatus: "Available" | "Out of Stock" | "Unavailable";
+  FoodId: string;
+  CategoryId: string;
+  MerchantId: string;
+  FoodName: string;
+  OriginalPrice: number;
+  SalePrice: number;
+  FoodImage: string;
+  Descriptions: string;
+  FoodStatus: number; // 1: Available, 0: Unavailable
+  storeName?: string;
+  shopType?: string;
   rating?: number;
   toppingOptions?: ToppingOption[];
 }
 
 // Constants
 const DEFAULT_DISH: Partial<Dish> = {
-  foodName: "",
-  descriptions: "",
-  originalPrice: "",
-  salePrice: "",
-  foodImage: "",
-  foodStatus: "Available",
-  categoryId: "",
-  merchantId: "M001",
+  FoodName: "",
+  Descriptions: "",
+  OriginalPrice: 0,
+  SalePrice: 0,
+  FoodImage: "",
+  FoodStatus: 1,
+  CategoryId: "3", // Default to "Đồ ăn"
+  MerchantId: "M001",
   rating: 5,
   toppingOptions: [],
 };
 
 const STATIC_CATEGORIES: Category[] = [
-  { categoryid: "1", categoryname: "Tất cả" },
-  { categoryid: "2", categoryname: "Thức uống" },
-  { categoryid: "3", categoryname: "Đồ ăn" },
-  { categoryid: "4", categoryname: "Đồ chay" },
-  { categoryid: "5", categoryname: "Bánh kem" },
-  { categoryid: "6", categoryname: "Tráng miệng" },
-  { categoryid: "7", categoryname: "Pizza/Burger" },
-  { categoryid: "8", categoryname: "Món lẩu" },
-  { categoryid: "9", categoryname: "Sushi" },
-  { categoryid: "10", categoryname: "Mì" },
-  { categoryid: "11", categoryname: "Phở" },
-  { categoryid: "12", categoryname: "Bún" },
-  { categoryid: "13", categoryname: "Cơm hộp" },
+  { CategoryId: "1", CategoryName: "Tất cả" },
+  { CategoryId: "2", CategoryName: "Thức uống" },
+  { CategoryId: "3", CategoryName: "Đồ ăn" },
+  { CategoryId: "4", CategoryName: "Đồ chay" },
+  { CategoryId: "5", CategoryName: "Bánh kem" },
+  { CategoryId: "6", CategoryName: "Tráng miệng" },
+  { CategoryId: "7", CategoryName: "Pizza/Burger" },
+  { CategoryId: "8", CategoryName: "Món lẩu" },
+  { CategoryId: "9", CategoryName: "Sushi" },
+  { CategoryId: "10", CategoryName: "Mì" },
+  { CategoryId: "11", CategoryName: "Phở" },
+  { CategoryId: "12", CategoryName: "Bún" },
+  { CategoryId: "13", CategoryName: "Cơm hộp" },
 ];
 
 const CATEGORY_ICON_MAP: Record<string, any> = {
@@ -129,7 +128,6 @@ export default function MenuManagement() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isModifyDialogOpen, setIsModifyDialogOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Dish>>(DEFAULT_DISH);
-  const [categoryList, setCategoryList] = useState<Category[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSavingData, setIsSavingData] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -139,13 +137,7 @@ export default function MenuManagement() {
 
   // Effects
   useEffect(() => {
-    const loadInitialData = async () => {
-      setIsPageLoading(true);
-      await Promise.all([fetchDishesFromServer(), initializeCategories()]);
-      setIsPageLoading(false);
-    };
-
-    loadInitialData();
+    fetchDishesFromServer();
   }, []);
 
   // Derived states
@@ -155,57 +147,12 @@ export default function MenuManagement() {
     currentPage * ITEMS_PER_PAGE,
   );
 
-  // Initialization methods
-  const initializeCategories = async () => {
-    setCategoryList(STATIC_CATEGORIES);
-    if (!formData.categoryId) {
-      setFormData((prev) => ({
-        ...prev,
-        categoryId: STATIC_CATEGORIES[0].categoryid,
-      }));
-    }
-  };
-
   const fetchDishesFromServer = async () => {
+    setIsPageLoading(true);
     try {
-      // Mock data - In real app, this would be an API call
-      const mockDishes: Dish[] = [
-        {
-          id: "d1",
-          storeName: "ShopeeFood Official",
-          openTime: "08:00",
-          closeTime: "22:00",
-          shopType: "Food",
-          categoryId: "3",
-          merchantId: "M001",
-          foodName: "Bún chả Hà Nội",
-          originalPrice: "55000",
-          salePrice: "45000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Bún chả truyền thống",
-          foodStatus: "Available",
-          rating: 5,
-          toppingOptions: [],
-        },
-        {
-          id: "d2",
-          storeName: "ShopeeFood Official",
-          openTime: "08:00",
-          closeTime: "22:00",
-          shopType: "Drink",
-          categoryId: "2",
-          merchantId: "M001",
-          foodName: "Trà sữa Trân trâu",
-          originalPrice: "40000",
-          salePrice: "35000",
-          foodImage: "/images/bunchahanoi.jpg",
-          descriptions: "Trà sữa đậm vị",
-          foodStatus: "Available",
-          rating: 4.5,
-          toppingOptions: [],
-        },
-      ];
-      setDishList(mockDishes);
+      const mockDishes = await getMockDishes();
+      // Only keep dishes for this particular merchant (assuming M001 for now)
+      setDishList(mockDishes.filter(d => d.MerchantId === "M001"));
     } catch (error) {
       console.error("Error fetching dishes:", error);
     } finally {
@@ -218,7 +165,10 @@ export default function MenuManagement() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ 
+      ...prev, 
+      [name]: (name === "OriginalPrice" || name === "SalePrice") ? Number(value) : value 
+    }));
   };
 
   const handleImageFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,7 +182,7 @@ export default function MenuManagement() {
       ...prev,
       toppingOptions: [
         ...(prev.toppingOptions || []),
-        { toppingName: "", price: "" },
+        { ToppingId: `T${Date.now()}`, ToppingName: "", Price: 0 },
       ],
     }));
   };
@@ -240,12 +190,12 @@ export default function MenuManagement() {
   const updateToppingOption = (
     index: number,
     fieldName: keyof ToppingOption,
-    newValue: string,
+    newValue: any,
   ) => {
     const currentToppings = [...(formData.toppingOptions || [])];
     currentToppings[index] = {
       ...currentToppings[index],
-      [fieldName]: newValue,
+      [fieldName]: fieldName === "Price" ? Number(newValue) : newValue,
     };
     setFormData((prev) => ({ ...prev, toppingOptions: currentToppings }));
   };
@@ -260,31 +210,31 @@ export default function MenuManagement() {
     e.preventDefault();
     setIsSavingData(true);
 
-    if (!formData.categoryId) {
+    if (!formData.CategoryId) {
       alert("Vui lòng chọn danh mục cho món ăn!");
       setIsSavingData(false);
       return;
     }
 
     try {
-      let finalImageUrl = formData.foodImage;
+      let finalImageUrl = formData.FoodImage || "";
       if (selectedImageFile) {
         finalImageUrl = URL.createObjectURL(selectedImageFile);
       }
 
       const preparedDishData = {
         ...formData,
-        id: activeEditingId || `d${Math.floor(Math.random() * 1000)}`,
-        foodImage: finalImageUrl,
+        FoodId: activeEditingId || `d${Math.floor(Math.random() * 1000)}`,
+        FoodImage: finalImageUrl,
       } as Dish;
 
       // Simulate API call Delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (activeEditingId) {
         // Update existing
         setDishList((prev) =>
-          prev.map((d) => (d.id === activeEditingId ? preparedDishData : d)),
+          prev.map((d) => (d.FoodId === activeEditingId ? preparedDishData : d)),
         );
         alert("Cập nhật món ăn thành công!");
       } else {
@@ -299,9 +249,7 @@ export default function MenuManagement() {
       setSelectedImageFile(null);
     } catch (error: any) {
       console.error("Critical error saving dish:", error);
-      alert(
-        `Đã xảy ra lỗi: ${error.message || "Không thể kết nối với máy chủ"}`,
-      );
+      alert(`Đã xảy ra lỗi: ${error.message || "Không thể kết nối"}`);
     } finally {
       setIsSavingData(false);
     }
@@ -309,35 +257,23 @@ export default function MenuManagement() {
 
   const updateDishAvailabilityStatus = async (
     dishId: string,
-    newStatusValue: string,
+    newStatusValue: number,
   ) => {
     try {
-      const response = await fetch(`/api/dishes/${dishId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ foodStatus: newStatusValue }),
-      });
-
-      if (response.ok) {
-        setDishList((prev) =>
-          prev.map((dish) =>
-            dish.id === dishId
-              ? { ...dish, foodStatus: newStatusValue as any }
-              : dish,
-          ),
-        );
-      } else {
-        const errorResponse = await response.json();
-        alert(`Lỗi: ${errorResponse.error || "Không thể cập nhật trạng thái"}`);
-      }
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      setDishList((prev) =>
+        prev.map((dish) =>
+          dish.FoodId === dishId
+            ? { ...dish, FoodStatus: newStatusValue }
+            : dish,
+        ),
+      );
     } catch (error) {
       console.error("Error updating dish status:", error);
       alert("Đã xảy ra lỗi khi kết nối với máy chủ");
     }
-  };
-
-  const softDeleteDish = async (dishId: string) => {
-    await updateDishAvailabilityStatus(dishId, "Unavailable");
   };
 
   return (
@@ -386,15 +322,15 @@ export default function MenuManagement() {
                 <div className="space-y-6">
                   <div className="grid gap-2">
                     <Label
-                      htmlFor="foodName"
+                      htmlFor="FoodName"
                       className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
                     >
                       Tên món ăn
                     </Label>
                     <Input
-                      id="foodName"
-                      name="foodName"
-                      value={formData.foodName}
+                      id="FoodName"
+                      name="FoodName"
+                      value={formData.FoodName}
                       onChange={handleInputFieldChange}
                       placeholder="Ví dụ: Bún chả HN"
                       className="h-12 border-2 border-gray-100 focus:border-[#ee4d2d] rounded-xl px-4 font-medium transition-all"
@@ -404,15 +340,15 @@ export default function MenuManagement() {
 
                   <div className="grid gap-2">
                     <Label
-                      htmlFor="descriptions"
+                      htmlFor="Descriptions"
                       className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
                     >
                       Mô tả
                     </Label>
                     <Textarea
-                      id="descriptions"
-                      name="descriptions"
-                      value={formData.descriptions}
+                      id="Descriptions"
+                      name="Descriptions"
+                      value={formData.Descriptions}
                       onChange={handleInputFieldChange}
                       placeholder="Mô tả ngắn gọn về món ăn..."
                       className="min-h-[100px] border-2 border-gray-100 focus:border-[#ee4d2d] rounded-xl px-4 py-3 font-medium transition-all resize-none"
@@ -423,16 +359,16 @@ export default function MenuManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label
-                        htmlFor="originalPrice"
+                        htmlFor="OriginalPrice"
                         className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
                       >
                         Giá gốc
                       </Label>
                       <Input
-                        id="originalPrice"
-                        name="originalPrice"
+                        id="OriginalPrice"
+                        name="OriginalPrice"
                         type="number"
-                        value={formData.originalPrice}
+                        value={formData.OriginalPrice}
                         onChange={handleInputFieldChange}
                         placeholder="50000"
                         className="h-12 border-2 border-gray-100 focus:border-[#ee4d2d] rounded-xl px-4 font-medium transition-all"
@@ -441,16 +377,16 @@ export default function MenuManagement() {
                     </div>
                     <div className="grid gap-2">
                       <Label
-                        htmlFor="salePrice"
+                        htmlFor="SalePrice"
                         className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1"
                       >
                         Giá KM
                       </Label>
                       <Input
-                        id="salePrice"
-                        name="salePrice"
+                        id="SalePrice"
+                        name="SalePrice"
                         type="number"
-                        value={formData.salePrice}
+                        value={formData.SalePrice}
                         onChange={handleInputFieldChange}
                         placeholder="45000"
                         className="h-12 border-2 border-gray-100 focus:border-[#ee4d2d] rounded-xl px-4 font-medium transition-all"
@@ -468,13 +404,13 @@ export default function MenuManagement() {
                     <div className="relative group cursor-pointer">
                       <div className="w-full aspect-video rounded-2xl bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-[#ee4d2d]/30">
                         {selectedImageFile ||
-                        (formData.foodImage && formData.foodImage !== "") ? (
+                        (formData.FoodImage && formData.FoodImage !== "") ? (
                           <div className="relative w-full h-full">
                             <img
                               src={
                                 selectedImageFile
                                   ? URL.createObjectURL(selectedImageFile)
-                                  : formData.foodImage
+                                  : formData.FoodImage
                               }
                               alt=""
                               className="w-full h-full object-cover"
@@ -501,7 +437,7 @@ export default function MenuManagement() {
                           </div>
                         )}
                         <input
-                          id="foodImage"
+                          id="FoodImage"
                           type="file"
                           accept="image/*"
                           onChange={handleImageFileSelection}
@@ -518,17 +454,17 @@ export default function MenuManagement() {
                     <div className="grid grid-cols-2 gap-2">
                       {STATIC_CATEGORIES.slice(1).map((category) => {
                         const isSelected =
-                          formData.categoryId === category.categoryid;
+                          formData.CategoryId === category.CategoryId;
                         const Icon =
-                          CATEGORY_ICON_MAP[category.categoryname] ||
+                          CATEGORY_ICON_MAP[category.CategoryName] ||
                           CATEGORY_ICON_MAP["Default"];
                         return (
                           <div
-                            key={category.categoryid}
+                            key={category.CategoryId}
                             onClick={() =>
                               setFormData((prev) => ({
                                 ...prev,
-                                categoryId: category.categoryid,
+                                CategoryId: category.CategoryId,
                               }))
                             }
                             className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all ${
@@ -539,7 +475,7 @@ export default function MenuManagement() {
                           >
                             <Icon className="h-4 w-4 shrink-0" />
                             <span className="text-[11px] font-bold truncate leading-none">
-                              {category.categoryname}
+                              {category.CategoryName}
                             </span>
                           </div>
                         );
@@ -577,11 +513,11 @@ export default function MenuManagement() {
                           Tên tùy chọn
                         </Label>
                         <Input
-                          value={topping.toppingName}
+                          value={topping.ToppingName}
                           onChange={(e) =>
                             updateToppingOption(
                               index,
-                              "toppingName",
+                              "ToppingName",
                               e.target.value,
                             )
                           }
@@ -594,9 +530,9 @@ export default function MenuManagement() {
                           Giá (đ)
                         </Label>
                         <Input
-                          value={topping.price}
+                          value={topping.Price}
                           onChange={(e) =>
-                            updateToppingOption(index, "price", e.target.value)
+                            updateToppingOption(index, "Price", e.target.value)
                           }
                           placeholder="5000"
                           className="h-10 bg-white border-gray-100 focus:border-[#ee4d2d] rounded-xl px-4 font-medium"
@@ -687,24 +623,24 @@ export default function MenuManagement() {
                 <tbody className="divide-y divide-gray-50">
                   {paginatedDishes.map((dish) => (
                     <tr
-                      key={dish.id}
+                      key={dish.FoodId}
                       className="group hover:bg-gray-50/80 transition-all"
                     >
                       <td className="p-6">
                         <div className="flex items-center gap-4">
                           <div className="h-16 w-16 rounded-2xl overflow-hidden bg-gray-100 border border-gray-100 shrink-0 shadow-sm transition-transform group-hover:scale-105">
                             <img
-                              src={dish.foodImage}
-                              alt={dish.foodName}
+                              src={dish.FoodImage}
+                              alt={dish.FoodName}
                               className="h-full w-full object-cover"
                             />
                           </div>
                           <div>
                             <p className="font-black text-gray-900">
-                              {dish.foodName}
+                              {dish.FoodName}
                             </p>
                             <p className="text-xs text-gray-500 font-medium line-clamp-1">
-                              {dish.descriptions}
+                              {dish.Descriptions}
                             </p>
                           </div>
                         </div>
@@ -723,14 +659,11 @@ export default function MenuManagement() {
                       <td className="p-6">
                         <div className="flex flex-col">
                           <span className="font-black text-gray-900">
-                            {Number(
-                              dish.salePrice || dish.originalPrice,
-                            ).toLocaleString()}
-                            đ
+                            {(dish.SalePrice || dish.OriginalPrice).toLocaleString()}đ
                           </span>
-                          {dish.salePrice && (
+                          {dish.SalePrice !== dish.OriginalPrice && (
                             <span className="text-[10px] text-gray-400 font-bold line-through">
-                              {Number(dish.originalPrice).toLocaleString()}đ
+                              {dish.OriginalPrice.toLocaleString()}đ
                             </span>
                           )}
                         </div>
@@ -738,27 +671,22 @@ export default function MenuManagement() {
                       <td className="p-6">
                         <div className="relative inline-block w-40">
                           <select
-                            value={dish.foodStatus}
+                            value={dish.FoodStatus}
                             onChange={(e) =>
                               updateDishAvailabilityStatus(
-                                dish.id,
-                                e.target.value,
+                                dish.FoodId,
+                                Number(e.target.value),
                               )
                             }
                             className={`w-full appearance-none rounded-xl px-4 py-2 text-xs font-black uppercase tracking-tight border-2 cursor-pointer outline-none transition-all
                                                             ${
-                                                              dish.foodStatus ===
-                                                              "Available"
+                                                              dish.FoodStatus === 1
                                                                 ? "bg-green-50 border-green-100 text-green-600 focus:border-green-300"
-                                                                : dish.foodStatus ===
-                                                                    "Out of Stock"
-                                                                  ? "bg-yellow-50 border-yellow-100 text-yellow-600 focus:border-yellow-300"
-                                                                  : "bg-red-50 border-red-100 text-red-600 focus:border-red-300"
+                                                                : "bg-red-50 border-red-100 text-red-600 focus:border-red-300"
                                                             }`}
                           >
-                            <option value="Available">Còn bán</option>
-                            <option value="Out of Stock">Hết hàng</option>
-                            <option value="Unavailable">Ngừng bán</option>
+                            <option value={1}>Còn bán</option>
+                            <option value={0}>Ngừng bán</option>
                           </select>
                         </div>
                       </td>
@@ -769,7 +697,7 @@ export default function MenuManagement() {
                             size="icon"
                             onClick={() => {
                               setFormData(dish);
-                              setActiveEditingId(dish.id);
+                              setActiveEditingId(dish.FoodId);
                               setIsModifyDialogOpen(true);
                             }}
                             className="h-10 w-10 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"

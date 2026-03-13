@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/lib/data";
+import { Product } from "@/lib/data";
+import { getMockProducts } from "@/lib/apiClient";
 import { Store, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -17,12 +18,28 @@ const StorePage = () => {
   const router = useRouter();
   const merchantId = params.id as string;
 
-  // Lọc các sản phẩm thuộc về merchantId này
-  const storeProducts = products.filter((p) => p.merchantId === merchantId);
+  const [storeProducts, setStoreProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStoreData = async () => {
+      setIsLoading(true);
+      try {
+        const allProducts = await getMockProducts();
+        const filtered = allProducts.filter((p) => p.MerchantId === merchantId);
+        setStoreProducts(filtered);
+      } catch (error) {
+        console.error("Error fetching store products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStoreData();
+  }, [merchantId]);
 
   // Lấy tên merchant từ sản phẩm đầu tiên (nếu có)
   const merchantName =
-    storeProducts.length > 0 ? storeProducts[0].merchantName : "Cửa hàng";
+    storeProducts.length > 0 ? storeProducts[0].merchantName || "Cửa hàng" : "Cửa hàng";
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -43,11 +60,15 @@ const StorePage = () => {
 
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white rounded-3xl shadow-sm border border-gray-100 flex items-center justify-center text-[#ee4d2d]">
-                <Store className="w-8 h-8" />
+                {isLoading ? (
+                  <div className="h-6 w-6 border-2 border-[#ee4d2d]/10 border-t-[#ee4d2d] rounded-full animate-spin" />
+                ) : (
+                  <Store className="w-8 h-8" />
+                )}
               </div>
               <div>
                 <h1 className="text-3xl font-black text-gray-900 tracking-tight uppercase">
-                  {merchantName}
+                  {isLoading ? "Đang tải..." : merchantName}
                 </h1>
                 <p className="text-gray-500 font-medium">
                   Khám phá thực đơn phong phú từ {merchantName}
@@ -61,15 +82,20 @@ const StorePage = () => {
               Món ăn đang bán
             </p>
             <p className="text-2xl font-black text-[#ee4d2d]">
-              {storeProducts.length} món
+              {isLoading ? "..." : `${storeProducts.length} món`}
             </p>
           </div>
         </div>
 
-        {storeProducts.length > 0 ? (
+        {isLoading ? (
+           <div className="py-20 flex flex-col items-center justify-center gap-4">
+              <div className="h-12 w-12 border-4 border-[#ee4d2d]/10 border-t-[#ee4d2d] rounded-full animate-spin" />
+              <p className="text-[#ee4d2d] font-black uppercase tracking-widest">Đang tải thực đơn...</p>
+           </div>
+        ) : storeProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {storeProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.FoodId} product={product} />
             ))}
           </div>
         ) : (

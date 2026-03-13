@@ -1,0 +1,22 @@
+[
+  {
+    "ReviewId": "REV-101",
+    "OrderId": "ORD-8821",
+    "Rating": 5,
+    "Comment": "Đồ ăn rất ngon, đóng gói chắc chắn. Sẽ ủng hộ quán dài dài!",
+    "ReviewType": "Order",
+    "MediaUrl": "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?q=80&w=500&auto=format&fit=crop",
+    "ReviewDate": "2026-03-09T12:30:00Z",
+    "FullName": "Nguyễn Văn A"
+  },
+  {
+    "ReviewId": "REV-102",
+    "OrderId": "ORD-9932",
+    "Rating": 4,
+    "Comment": "Giao hàng nhanh, nhân viên thân thiện. Tuy nhiên bún hơi ít một chút.",
+    "ReviewType": "Order",
+    "MediaUrl": "https://images.unsplash.com/photo-1512058560366-cd242dfe5cc3?q=80&w=500&auto=format&fit=crop",
+    "ReviewDate": "2026-03-09T16:15:00Z",
+    "FullName": "Trần Thị B"
+  }
+]

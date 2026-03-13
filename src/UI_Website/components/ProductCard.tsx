@@ -60,6 +60,8 @@ export default function ProductCard({ product }: ProductProps) {
     router.push("/cart");
   }
 
+  const displayPrice = (product.SalePrice || product.OriginalPrice || 0).toLocaleString("vi-VN") + "đ";
+
   return (
     <>
       <Card
@@ -69,9 +71,9 @@ export default function ProductCard({ product }: ProductProps) {
         <CardHeader className="p-0 relative">
           <div className="overflow-hidden h-48">
             <img
-              src={product.image}
-              alt=""
-              className="w-full h-full object-cover"
+              src={product.FoodImage}
+              alt={product.FoodName}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
             {product.discount && (
               <div className="absolute top-4 left-4 bg-[#ee4d2d] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -83,24 +85,24 @@ export default function ProductCard({ product }: ProductProps) {
 
         <CardContent className="p-4 flex flex-col gap-1">
           <Link
-            href={`/store/${product.merchantId}`}
+            href={`/store/${product.MerchantId}`}
             className="flex items-center gap-1.5 text-gray-400 font-bold text-[10px] uppercase tracking-widest hover:text-[#ee4d2d] transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             <Store className="w-3 h-3" />
-            {product.merchantName}
+            {product.merchantName || "Cửa hàng"}
           </Link>
 
           <CardTitle className="text-lg font-black text-gray-900 line-clamp-1 group-hover:text-[#ee4d2d] transition-colors">
-            {product.name}
+            {product.FoodName}
           </CardTitle>
 
           <p className="text-gray-400 text-xs line-clamp-2 font-medium mb-2 leading-relaxed">
-            {product.description}
+            {product.Descriptions}
           </p>
 
           <div className="flex items-center justify-between mt-auto">
-            <p className="text-xl font-black text-[#ee4d2d]">{product.price}</p>
+            <p className="text-xl font-black text-[#ee4d2d]">{displayPrice}</p>
 
             <div
               className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-100"
