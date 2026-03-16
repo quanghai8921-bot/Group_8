@@ -58,17 +58,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDTO login(UserLoginDTO dto) {
-        Optional<User> user = userRepository.findByEmail(dto.getEmail());
-        if (user.isEmpty()) {
-            throw new RuntimeException("User not found");
+        // Try to find user by email first
+        Optional<User> userOpt = userRepository.findByEmail(dto.getEmail());
+
+        // If not found by email, try phone number using the same field
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByPhoneNumber(dto.getEmail());
         }
 
-        User foundUser = user.get();
-        if (!passwordEncoder.matches(dto.getPassword(), foundUser.getPassword())) {
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("User not found with provided email or phone number");
+        }
+
+        User user = userOpt.get();
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
             throw new RuntimeException("Invalid password");
         }
 
-        return convertToResponseDTO(foundUser);
+        return convertToResponseDTO(user);
     }
 
     @Override

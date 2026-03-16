@@ -11,15 +11,15 @@ import java.util.Set;
 @AllArgsConstructor
 public class FoodItem {
     @Id
-    @Column(name = "FoodID", length = 10)
+    @Column(name = "FoodId", length = 10)
     private String foodId;
 
     @ManyToOne
-    @JoinColumn(name = "CategoryID", nullable = false)
+    @JoinColumn(name = "CategoryId", nullable = false)
     private MenuCategory menuCategory;
 
     @ManyToOne
-    @JoinColumn(name = "MerchantID", nullable = false)
+    @JoinColumn(name = "MerchantId", nullable = false)
     private Merchant merchant;
 
     @Column(name = "FoodName", length = 50, nullable = false)
@@ -44,8 +44,8 @@ public class FoodItem {
     @ManyToMany
     @JoinTable(
         name = "Food_Topping_Mapping",
-        joinColumns = @JoinColumn(name = "Food_ID"),
-        inverseJoinColumns = @JoinColumn(name = "Topping_ID")
+        joinColumns = @JoinColumn(name = "FoodId"),
+        inverseJoinColumns = @JoinColumn(name = "ToppingId")
     )
     private Set<OptionTopping> optionToppings;
 

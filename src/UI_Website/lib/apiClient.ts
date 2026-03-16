@@ -9,7 +9,7 @@ import mockUserCoins from './mockData/userCoins.json';
 
 // Create axios instance with base URL
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: 'http://localhost:4040/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -41,7 +41,6 @@ apiClient.interceptors.response.use(
   }
 );
 
-<<<<<<< HEAD
 // ==================== Auth Endpoints ====================
 
 export interface UserRegistration {
@@ -57,9 +56,7 @@ export interface UserLogin {
   email: string;
   password: string;
 }
-=======
 // ==================== Types & Interfaces ====================
->>>>>>> b6d66bbe779248d88dcab57eeb9d120e207f57af
 
 export interface UserResponse {
   UserId: string;
@@ -256,7 +253,14 @@ export const handleApiError = (error: AxiosError): { message: string } => {
 };
 
 export const loginUser = async (credentials: any): Promise<any> => {
-  const response = await apiClient.post('/login', credentials);
+  // Backend login endpoint: POST /api/users/login
+  const response = await apiClient.post('/users/login', credentials);
+  return response.data;
+};
+
+export const registerUser = async (userData: UserRegistration): Promise<UserResponse> => {
+  // Backend register endpoint: POST /api/users/register
+  const response = await apiClient.post('/users/register', userData);
   return response.data;
 };
 

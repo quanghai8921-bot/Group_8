@@ -10,29 +10,29 @@ import java.util.Set;
 @NoArgsConstructor @AllArgsConstructor
 public class Merchant {
     @Id
-    @Column(name = "Merchant_ID", length = 10)
+    @Column(name = "MerchantId", length = 10)
     private String merchantId;
 
     @OneToOne
     @JoinColumn(name = "UserID", unique = true, nullable = false)
     private User user;
 
-    @Column(name = "Store_Name", length = 100, nullable = false)
+    @Column(name = "StoreName", length = 100, nullable = false)
     private String storeName;
 
-    @Column(name = "Store_Address", length = 100, nullable = false)
+    @Column(name = "StoreAddress", length = 100, nullable = false)
     private String storeAddress;
 
-    @Column(name = "Open_Time", nullable = false)
+    @Column(name = "OpenTime", nullable = false)
     private java.time.LocalTime openTime;
 
-    @Column(name = "Close_Time", nullable = false)
+    @Column(name = "CloseTime", nullable = false)
     private java.time.LocalTime closeTime;
 
-    @Column(name = "Active_Status", nullable = false)
+    @Column(name = "ActiveStatus", nullable = false)
     private Boolean activeStatus = true;
 
-    @Column(name = "Shop_Type", length = 50, nullable = false)
+    @Column(name = "ShopType", length = 50, nullable = false)
     private String shopType;
 
     @PrePersist

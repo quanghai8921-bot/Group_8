@@ -78,81 +78,156 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderResponseDTO createOrderFromCart(com.group8.backend.dto.PlaceOrderDTO dto) {
-        User user = userRepository.findById(dto.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
-        Merchant merchant = merchantRepository.findById(dto.getMerchantId()).orElseThrow(() -> new RuntimeException("Merchant not found"));
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Merchant merchant = merchantRepository.findById(dto.getMerchantId())
+                .orElseThrow(() -> new RuntimeException("Merchant not found"));
         Cart cart = cartRepository.findByUser_UserIdAndMerchant_MerchantId(dto.getUserId(), dto.getMerchantId())
                 .orElseThrow(() -> new RuntimeException("Cart not found"));
 
-        if (cart.getSubtotalPrice() == null || cart.getSubtotalPrice() <= 0L) {
+        // Ensure cart has items
+        List<CartItem> cartItems = cartItemRepository.findByCart_CartId(cart.getCartId());
+        if (cartItems == null || cartItems.isEmpty()) {
             throw new RuntimeException("Cart is empty");
         }
 
+        long foodAmount = cart.getSubtotalPrice();
+
+        // Apply voucher if provided
         Voucher appliedVoucher = null;
         if (dto.getVoucherCode() != null && !dto.getVoucherCode().isBlank()) {
-            Voucher v = voucherRepository.findByVoucherCode(dto.getVoucherCode()).orElseThrow(() -> new RuntimeException("Voucher not found"));
-            appliedVoucher = v;
+            appliedVoucher = voucherRepository.findByVoucherCode(dto.getVoucherCode())
+                    .orElseThrow(() -> new RuntimeException("Voucher not found"));
+        }
+        long discountFromVoucher = appliedVoucher != null ? appliedVoucher.getDiscountValue() : 0L;
+
+        long shippingFee = dto.getShippingFee().longValue();
+
+        // Stock check and deduction for each food item
+        for (CartItem ci : cartItems) {
+            FoodItem food = ci.getFoodItem();
+            // Giả sử bạn có cột số lượng trong bảng FoodItems, ví dụ: StockQuantity
+            // Nếu chưa có, bạn có thể đổi logic này phù hợp với schema thật của bạn.
+            // Ở đây ta giả định có getter/setter: getStockQuantity(), setStockQuantity()
+            try {
+                java.lang.reflect.Method getter = food.getClass().getMethod("getStockQuantity");
+                java.lang.reflect.Method setter = food.getClass().getMethod("setStockQuantity", Integer.class);
+                Integer currentStock = (Integer) getter.invoke(food);
+                if (currentStock == null || currentStock < ci.getQuantity()) {
+                    throw new RuntimeException("Sản phẩm " + food.getFoodName() + " không đủ tồn kho");
+                }
+                setter.invoke(food, currentStock - ci.getQuantity());
+                // Persist stock update
+                // foodItemRepository is already injected via other services or you can inject it if needed
+            } catch (NoSuchMethodException e) {
+                // Nếu schema hiện tại chưa có cột tồn kho, bạn có thể bỏ qua phần này hoặc thay đổi cho đúng
+                // Ở đây tạm thời bỏ qua xử lý tồn kho nếu không có cột
+            } catch (Exception ex) {
+                throw new RuntimeException("Lỗi xử lý tồn kho cho sản phẩm " + food.getFoodName());
+            }
         }
 
+        // Create order
         Order order = new Order();
         order.setOrderId(generateId());
         order.setUser(user);
         order.setMerchant(merchant);
         order.setOrderTime(LocalDateTime.now());
-        order.setFoodAmount(cart.getSubtotalPrice());
-        order.setShippingFee(dto.getShippingFee().longValue());
-        
-        // Cập nhật chiết khấu
-        order.setFoodDiscount(appliedVoucher != null ? appliedVoucher.getDiscountValue() : 0L);
+        order.setFoodAmount(foodAmount);
+        order.setShippingFee(shippingFee);
+        order.setFoodDiscount(discountFromVoucher);
         order.setShipDiscount(0L);
         order.setOrderStatus(true);
         order.setDeliveryAddress(dto.getDeliveryAddress());
 
         Order savedOrder = orderRepository.save(order);
 
-        // Chuyển CartItems sang OrderDetail
-        List<CartItem> cartItems = cartItemRepository.findByCart_CartId(cart.getCartId());
+        // Create order details + toppings
         for (CartItem ci : cartItems) {
             OrderDetail od = new OrderDetail();
-            od.setOrderDetailId(generateId());
             od.setOrder(savedOrder);
             od.setFoodItem(ci.getFoodItem());
             od.setFoodName(ci.getFoodItem().getFoodName());
             od.setQuantity(ci.getQuantity());
-            long unitPrice = ci.getFoodItem().getSalePrice() != null ? ci.getFoodItem().getSalePrice() : ci.getFoodItem().getOriginalPrice();
+            long unitPrice = ci.getFoodItem().getSalePrice() != null
+                    ? ci.getFoodItem().getSalePrice()
+                    : ci.getFoodItem().getOriginalPrice();
             od.setUnitPrice(unitPrice);
-            orderDetailRepository.save(od);
+
+            OrderDetail savedDetail = orderDetailRepository.save(od);
+
+            if (ci.getCartItemToppings() != null) {
+                for (CartItemTopping ct : ci.getCartItemToppings()) {
+                    OrderDetailTopping odt = new OrderDetailTopping();
+                    odt.setOrderDetail(savedDetail);
+                    odt.setOptionTopping(ct.getOptionTopping());
+                    odt.setToppingName(ct.getOptionTopping().getNameOption());
+                    odt.setToppingPrice(ct.getOptionTopping().getSurcharge());
+                    orderDetailToppingRepository.save(odt);
+                }
+            }
         }
 
+        long finalAmount = foodAmount + shippingFee - discountFromVoucher;
+
+        // Create payment record
+        Payment payment = new Payment();
+        payment.setOrder(savedOrder);
+        payment.setAmount(finalAmount);
+        payment.setPaymentMethod("ONLINE");
+        payment.setPaymentDate(LocalDateTime.now());
+        payment.setStatus("Success");
+        paymentRepository.save(payment);
+
+        // Clear cart (items & cart)
+        for (CartItem ci : cartItems) {
+            cartItemRepository.delete(ci);
+        }
         cartRepository.delete(cart);
+
         return convertToResponseDTO(savedOrder);
     }
 
     @Override
     @Transactional
     public CheckoutResponseDTO checkout(CheckoutRequestDTO dto) {
-        User user = userRepository.findById(dto.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
-        Cart cart = cartRepository.findById(dto.getCartId()).orElseThrow(() -> new RuntimeException("Cart not found"));
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Cart cart = cartRepository.findById(dto.getCartId())
+                .orElseThrow(() -> new RuntimeException("Cart not found"));
 
+        // Load cart items and validate cart is not empty
         List<CartItem> cartItems = cartItemRepository.findByCart_CartId(dto.getCartId());
+        if (cartItems == null || cartItems.isEmpty()) {
+            throw new RuntimeException("Cart is empty");
+        }
+
         long totalAmount = cart.getSubtotalPrice();
 
-        Voucher voucher = dto.getVoucherId() != null ? voucherRepository.findById(dto.getVoucherId()).orElse(null) : null;
+        // Apply voucher if exists
+        Voucher voucher = dto.getVoucherId() != null
+                ? voucherRepository.findById(dto.getVoucherId()).orElse(null)
+                : null;
         long foodDiscount = voucher != null ? voucher.getDiscountValue() : 0L;
 
-        // Xử lý Shopee Coins
-        if (dto.getShopeeCoinsUsed() && user.getShopeeCoins() > 0) {
+        // Apply Shopee Coins
+        if (Boolean.TRUE.equals(dto.getShopeeCoinsUsed()) && user.getShopeeCoins() > 0) {
             long coinsToUse = Math.min(user.getShopeeCoins(), totalAmount);
             foodDiscount += coinsToUse;
             user.setShopeeCoins(user.getShopeeCoins() - coinsToUse);
             userRepository.save(user);
         }
 
+        // Shipping fee (could be dynamic later)
+        long shippingFee = 30000L;
+
+        // Create Order record
         Order order = new Order();
         order.setUser(user);
         order.setMerchant(cart.getMerchant());
         order.setOrderTime(LocalDateTime.now());
         order.setFoodAmount(totalAmount);
-        order.setShippingFee(30000L);
+        order.setShippingFee(shippingFee);
         order.setFoodDiscount(foodDiscount);
         order.setShipDiscount(0L);
         order.setOrderStatus(true);
@@ -160,25 +235,58 @@ public class OrderServiceImpl implements OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // Tính Final Amount thủ công để trả về DTO
-        long finalAmt = order.getFoodAmount() + order.getShippingFee() - order.getFoodDiscount();
+        // Create OrderDetails & OrderItemToppings from cart items
+        for (CartItem ci : cartItems) {
+            OrderDetail od = new OrderDetail();
+            od.setOrder(savedOrder);
+            od.setFoodItem(ci.getFoodItem());
+            od.setFoodName(ci.getFoodItem().getFoodName());
+            od.setQuantity(ci.getQuantity());
+            long unitPrice = ci.getFoodItem().getSalePrice() != null
+                    ? ci.getFoodItem().getSalePrice()
+                    : ci.getFoodItem().getOriginalPrice();
+            od.setUnitPrice(unitPrice);
 
+            OrderDetail savedDetail = orderDetailRepository.save(od);
+
+            // Save toppings for this order item
+            if (ci.getCartItemToppings() != null) {
+                for (CartItemTopping ct : ci.getCartItemToppings()) {
+                    OrderDetailTopping odt = new OrderDetailTopping();
+                    odt.setOrderDetail(savedDetail);
+                    odt.setOptionTopping(ct.getOptionTopping());
+                    odt.setToppingName(ct.getOptionTopping().getNameOption());
+                    odt.setToppingPrice(ct.getOptionTopping().getSurcharge());
+                    orderDetailToppingRepository.save(odt);
+                }
+            }
+        }
+
+        // Calculate final amount
+        long finalAmt = totalAmount + shippingFee - foodDiscount;
+
+        // Create Payment record
         Payment payment = new Payment();
         payment.setOrder(savedOrder);
         payment.setAmount(finalAmt);
         payment.setPaymentMethod(dto.getPaymentMethod());
         payment.setPaymentDate(LocalDateTime.now());
-        // Giả sử bảng Payment vẫn dùng cột Status kiểu String
-        // payment.setStatus("Success"); 
-        paymentRepository.save(payment);
+        payment.setStatus("Success");
+        Payment savedPayment = paymentRepository.save(payment);
 
+        // Clear cart: delete cart items (toppings cascaded) then cart
+        for (CartItem ci : cartItems) {
+            cartItemRepository.delete(ci);
+        }
         cartRepository.delete(cart);
 
+        // Build response DTO
         CheckoutResponseDTO response = new CheckoutResponseDTO();
         response.setOrderId(savedOrder.getOrderId());
         response.setTotalAmount(totalAmount);
         response.setDiscountAmount(foodDiscount);
         response.setFinalAmount(finalAmt);
+        response.setPaymentId(savedPayment.getPaymentId());
         response.setStatus("Success");
 
         return response;

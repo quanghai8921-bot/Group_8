@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface FoodItemRepository extends JpaRepository<FoodItem, String> {
-    List<FoodItem> findByMenuCategory_Merchant_MerchantId(String merchantId);
+    List<FoodItem> findByMerchant_MerchantId(String merchantId);
     List<FoodItem> findByMenuCategory_CategoryId(String categoryId);
 }

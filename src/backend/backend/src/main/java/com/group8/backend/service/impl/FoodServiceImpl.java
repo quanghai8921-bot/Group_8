@@ -19,7 +19,7 @@ public class FoodServiceImpl implements FoodService {
 
     @Override
     public List<FoodItemDTO> getFoodByMerchant(String merchantId) {
-        return foodItemRepository.findByMenuCategory_Merchant_MerchantId(merchantId)
+        return foodItemRepository.findByMerchant_MerchantId(merchantId)
                 .stream()
                 .filter(food -> food.getFoodStatus() != null && food.getFoodStatus())
                 .map(this::convertToDTO)
