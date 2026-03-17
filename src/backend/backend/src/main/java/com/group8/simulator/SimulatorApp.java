@@ -18,8 +18,6 @@ import java.util.concurrent.TimeUnit;
  * It contains:
  * - Driver simulator: periodically updates driver locations around Quy Nhơn.
  * - Order simulator: logs in, fetches food list, adds to cart, and performs checkout / stress test.
- *
- * This is a standalone Java main class; run it separately from the backend server.
  */
 public class SimulatorApp {
 
@@ -27,17 +25,17 @@ public class SimulatorApp {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final RestTemplate REST = new RestTemplate();
 
-    // Sample accounts / drivers – adjust to match data in your DB
-    private static final String SAMPLE_USER_EMAIL = "user1@example.com";
-    private static final String SAMPLE_USER_PASSWORD = "123456";
-    private static final List<String> SAMPLE_DRIVER_IDS = Arrays.asList("DRV0001", "DRV0002", "DRV0003");
+    // Sample accounts / drivers – ĐÃ CẬP NHẬT THEO DATA THẬT CỦA BẠN
+    private static final String SAMPLE_USER_EMAIL = "Dung@gmail.com";
+    private static final String SAMPLE_USER_PASSWORD = "231205"; 
+    private static final List<String> SAMPLE_DRIVER_IDS = Arrays.asList("US10155", "US10156", "US10157", "US10158");
 
     public static void main(String[] args) throws Exception {
         System.out.println("=== ShopeeFood Simulator started ===");
 
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
-        // Driver simulator: update location every 5 seconds
+        // 1. Driver simulator: update location every 5 seconds
         scheduler.scheduleAtFixedRate(
                 SimulatorApp::runDriverLocationTick,
                 0,
@@ -45,20 +43,20 @@ public class SimulatorApp {
                 TimeUnit.SECONDS
         );
 
-        // Order simulator: simple stress test after short delay
+        // 2. Order simulator: simple stress test after 3 seconds
         scheduler.schedule(
                 () -> {
                     try {
                         runOrderStressTest(20);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        System.err.println("[OrderSimulator] Stress test fatal error: " + e.getMessage());
                     }
                 },
                 3,
                 TimeUnit.SECONDS
         );
 
-        // Keep main thread alive
+        // Keep main thread alive for 10 minutes
         Thread.currentThread().join(Duration.ofMinutes(10).toMillis());
     }
 
@@ -100,11 +98,10 @@ public class SimulatorApp {
         }
     }
 
-    // Rough bounding box around Quy Nhơn
     private static double[] randomCoordinateAroundQuyNhon() {
         double baseLat = 13.7768;
         double baseLng = 109.2237;
-        double latOffset = (Math.random() - 0.5) * 0.02;  // ~2km
+        double latOffset = (Math.random() - 0.5) * 0.02; 
         double lngOffset = (Math.random() - 0.5) * 0.02;
         return new double[]{baseLat + latOffset, baseLng + lngOffset};
     }
@@ -116,14 +113,15 @@ public class SimulatorApp {
 
         for (int i = 1; i <= orderCount; i++) {
             try {
-                String token = loginAndGetToken();
-                if (token == null) {
-                    System.out.println("[OrderSimulator] Login failed, skipping order " + i);
+                // Đăng nhập lấy thông tin (userId + token)
+                LoginResult login = login();
+                if (login == null || login.userId == null || login.userId.isEmpty()) {
+                    System.out.println("[OrderSimulator] Login check failed, skipping order " + i);
                     continue;
                 }
 
                 // 1) Get foods
-                List<Map<String, Object>> foods = fetchFoods(token);
+                List<Map<String, Object>> foods = fetchFoods(login.token);
                 if (foods.isEmpty()) {
                     System.out.println("[OrderSimulator] No foods available, skipping order " + i);
                     continue;
@@ -134,30 +132,33 @@ public class SimulatorApp {
                 String merchantId = (String) food.get("merchantId");
 
                 // 2) Add to cart
-                String cartId = addToCartAndGetCartId(token, foodId, merchantId);
+                String cartId = addToCartAndGetCartId(login.userId, login.token, foodId, merchantId);
                 if (cartId == null) {
                     System.out.println("[OrderSimulator] Failed to add to cart, skipping order " + i);
                     continue;
                 }
 
                 // 3) Checkout
-                String orderId = checkoutCart(token, cartId, merchantId);
+                String orderId = checkoutCart(login.userId, login.token, cartId, merchantId);
                 if (orderId != null) {
                     System.out.printf("[OrderSimulator] Order %d created successfully with ID %s%n", i, orderId);
                 } else {
                     System.out.printf("[OrderSimulator] Order %d failed at checkout%n", i);
                 }
+                
+                // Nghỉ một chút giữa các đơn cho đỡ nghẽn
+                Thread.sleep(500);
+
             } catch (Exception e) {
                 System.out.println("[OrderSimulator] Error during order " + i + ": " + e.getMessage());
             }
         }
-
         System.out.println("[OrderSimulator] Stress test finished.");
     }
 
-    // ---- Login ----
+    // ---- Login: trả về cả userId + token ----
 
-    private static String loginAndGetToken() throws Exception {
+    private static LoginResult login() throws Exception {
         Map<String, Object> body = new HashMap<>();
         body.put("email", SAMPLE_USER_EMAIL);
         body.put("password", SAMPLE_USER_PASSWORD);
@@ -166,140 +167,122 @@ public class SimulatorApp {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> resp = REST.postForEntity(
-                BASE_URL + "/users/login",
-                entity,
-                String.class
-        );
+        try {
+            ResponseEntity<String> resp = REST.postForEntity(BASE_URL + "/users/login", entity, String.class);
 
-        if (!resp.getStatusCode().is2xxSuccessful()) {
-            System.out.println("[OrderSimulator] Login failed: HTTP " + resp.getStatusCodeValue());
+            if (!resp.getStatusCode().is2xxSuccessful()) {
+                System.out.println("[OrderSimulator] Login HTTP Error: " + resp.getStatusCodeValue());
+                return null;
+            }
+
+            JsonNode root = MAPPER.readTree(resp.getBody());
+
+            // Hỗ trợ cả trường hợp response bọc 'data' hoặc trả trực tiếp UserResponseDTO
+            JsonNode dataNode = root.has("data") ? root.path("data") : root;
+            String userId = dataNode.path("userId").asText(null);
+            String token = dataNode.has("token") ? dataNode.path("token").asText(null) : null;
+
+            if (userId != null && !userId.isEmpty()) {
+                System.out.println("[OrderSimulator] Login OK, userId=" + userId);
+                return new LoginResult(userId, token);
+            }
+
+            System.out.println("[OrderSimulator] Login response does not contain userId");
+            return null;
+        } catch (Exception e) {
+            System.out.println("[OrderSimulator] Login Exception: " + e.getMessage());
             return null;
         }
-
-        JsonNode root = MAPPER.readTree(resp.getBody());
-        if (!root.path("success").asBoolean(false)) {
-            System.out.println("[OrderSimulator] Login failed: " + root.path("message").asText());
-            return null;
-        }
-
-        JsonNode data = root.path("data");
-        String userId = data.path("userId").asText(null);
-        String token = data.path("token").asText(null); // nếu backend sau này có JWT
-
-        System.out.println("[OrderSimulator] Login OK, userId=" + userId);
-        return token; // có thể null nếu backend chưa trả JWT – vẫn dùng được vì các API hiện không bắt buộc Auth
     }
+
+    // Nhỏ gọn lưu kết quả login (userId + token)
+    private record LoginResult(String userId, String token) {}
 
     // ---- Fetch foods ----
 
     private static List<Map<String, Object>> fetchFoods(String token) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        if (token != null) {
+        if (token != null && !token.isEmpty()) {
             headers.setBearerAuth(token);
         }
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<String> resp = REST.exchange(
-                BASE_URL + "/foods",
-                HttpMethod.GET,
-                entity,
-                String.class
-        );
+        try {
+            ResponseEntity<String> resp = REST.exchange(BASE_URL + "/foods", HttpMethod.GET, entity, String.class);
+            JsonNode root = MAPPER.readTree(resp.getBody());
+            JsonNode data = root.has("data") ? root.get("data") : root;
 
-        if (!resp.getStatusCode().is2xxSuccessful()) {
-            System.out.println("[OrderSimulator] Fetch foods failed: HTTP " + resp.getStatusCodeValue());
-            return Collections.emptyList();
+            if (data.isArray()) {
+                return MAPPER.convertValue(data, new TypeReference<List<Map<String, Object>>>() {});
+            }
+        } catch (Exception e) {
+            System.out.println("[OrderSimulator] Fetch foods failed: " + e.getMessage());
         }
-
-        JsonNode root = MAPPER.readTree(resp.getBody());
-        JsonNode data = root.path("data");
-        if (!data.isArray()) {
-            return Collections.emptyList();
-        }
-
-        return MAPPER.convertValue(data, new TypeReference<List<Map<String, Object>>>() {});
+        return Collections.emptyList();
     }
 
     // ---- Add to cart ----
 
-    private static String addToCartAndGetCartId(String token, String foodId, String merchantId) throws Exception {
-        // In this simple simulator we re-use the login email as an existing user; you can map it to userId if needed.
-        // For now, assume backend can infer userId or you can hard-code a known userId.
-        String userId = "USR0001"; // TODO: adjust to an existing user in DB
-
+    private static String addToCartAndGetCartId(String userId, String token, String foodId, String merchantId) throws Exception {
         Map<String, Object> body = new HashMap<>();
         body.put("userId", userId);
         body.put("merchantId", merchantId);
         body.put("foodId", foodId);
         body.put("quantity", 1);
-        body.put("note", "Simulator order");
+        body.put("note", "Simulator stress test");
         body.put("toppingIds", Collections.emptyList());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        if (token != null) {
+        if (token != null && !token.isEmpty()) {
             headers.setBearerAuth(token);
         }
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> resp = REST.postForEntity(
-                BASE_URL + "/carts/add",
-                entity,
-                String.class
-        );
-
-        if (!resp.getStatusCode().is2xxSuccessful()) {
-            System.out.println("[OrderSimulator] Add to cart failed: HTTP " + resp.getStatusCodeValue());
+        try {
+            ResponseEntity<String> resp = REST.postForEntity(BASE_URL + "/carts/add", entity, String.class);
+            JsonNode root = MAPPER.readTree(resp.getBody());
+            JsonNode data = root.has("data") ? root.get("data") : root;
+            
+            String cartId = data.path("cartId").asText(null);
+            if (cartId != null) {
+                System.out.println("[OrderSimulator] Added to cart, cartId=" + cartId);
+            }
+            return cartId;
+        } catch (Exception e) {
+            System.out.println("[OrderSimulator] Add to cart error: " + e.getMessage());
             return null;
         }
-
-        JsonNode root = MAPPER.readTree(resp.getBody());
-        JsonNode data = root.path("data");
-        String cartId = data.path("cartId").asText(null);
-        System.out.println("[OrderSimulator] Added to cart, cartId=" + cartId +
-                ", foodId=" + foodId + ", merchantId=" + merchantId);
-        return cartId;
     }
 
     // ---- Checkout ----
 
-    private static String checkoutCart(String token, String cartId, String merchantId) throws Exception {
-        // In this simple simulator we re-use the same userId as in addToCart.
-        String userId = "USR0001"; // TODO: adjust to existing user
-
+    private static String checkoutCart(String userId, String token, String cartId, String merchantId) throws Exception {
         Map<String, Object> body = new HashMap<>();
         body.put("userId", userId);
         body.put("cartId", cartId);
         body.put("voucherId", null);
-        body.put("shopeeCoinsUsed", Boolean.FALSE);
-        body.put("deliveryAddress", "Simulator Address, Quy Nhon");
+        body.put("shopeeCoinsUsed", false);
+        body.put("deliveryAddress", "Quy Nhon Simulator Street");
         body.put("paymentMethod", "COD");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        if (token != null) {
+        if (token != null && !token.isEmpty()) {
             headers.setBearerAuth(token);
         }
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
-        ResponseEntity<String> resp = REST.postForEntity(
-                BASE_URL + "/orders/checkout",
-                entity,
-                String.class
-        );
-
-        if (!resp.getStatusCode().is2xxSuccessful()) {
-            System.out.println("[OrderSimulator] Checkout failed: HTTP " + resp.getStatusCodeValue());
+        try {
+            ResponseEntity<String> resp = REST.postForEntity(BASE_URL + "/orders/checkout", entity, String.class);
+            JsonNode root = MAPPER.readTree(resp.getBody());
+            JsonNode data = root.has("data") ? root.get("data") : root;
+            
+            return data.path("orderId").asText(null);
+        } catch (Exception e) {
+            System.out.println("[OrderSimulator] Checkout error: " + e.getMessage());
             return null;
         }
-
-        JsonNode root = MAPPER.readTree(resp.getBody());
-        JsonNode data = root.path("data");
-        String orderId = data.path("orderId").asText(null);
-        System.out.println("[OrderSimulator] Checkout success, orderId=" + orderId);
-        return orderId;
     }
 }
-

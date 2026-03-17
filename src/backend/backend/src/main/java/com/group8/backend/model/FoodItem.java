@@ -2,6 +2,8 @@ package com.group8.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import java.util.Set;
 
 @Entity
@@ -14,12 +16,16 @@ public class FoodItem {
     @Column(name = "FoodId", length = 10)
     private String foodId;
 
-    @ManyToOne
-    @JoinColumn(name = "CategoryId", nullable = false)
+    // SỬA: Thêm NotFoundAction.IGNORE để tránh lỗi 500 khi CategoryID không tồn tại
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "CategoryId", nullable = true) // Để true để linh hoạt dữ liệu
+    @NotFound(action = NotFoundAction.IGNORE) 
     private MenuCategory menuCategory;
 
-    @ManyToOne
-    @JoinColumn(name = "MerchantId", nullable = false)
+    // SỬA: Tương tự cho Merchant để app chạy bền bỉ hơn
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "MerchantId", nullable = true)
+    @NotFound(action = NotFoundAction.IGNORE)
     private Merchant merchant;
 
     @Column(name = "FoodName", length = 50, nullable = false)
@@ -39,6 +45,10 @@ public class FoodItem {
 
     @Column(name = "FoodStatus", nullable = false)
     private Boolean foodStatus = true;
+
+    // // Thêm cột tồn kho để phục vụ Simulator trừ kho (như đã trao đổi ở bước trước)
+    // @Column(name = "StockQuantity")
+    // private Integer stockQuantity = 100;
 
     // Relationships
     @ManyToMany

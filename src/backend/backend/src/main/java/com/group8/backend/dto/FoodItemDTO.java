@@ -12,6 +12,7 @@ public class FoodItemDTO {
     private BigDecimal salePrice;
     private String foodImage;
     private String descriptions;
+    private String merchantId;
     private String categoryId;
     private String categoryName;
 }

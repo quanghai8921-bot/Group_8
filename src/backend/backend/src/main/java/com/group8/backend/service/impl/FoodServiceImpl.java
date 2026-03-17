@@ -61,8 +61,21 @@ public class FoodServiceImpl implements FoodService {
         dto.setSalePrice(new java.math.BigDecimal(food.getSalePrice()));
         dto.setFoodImage(food.getFoodImage());
         dto.setDescriptions(food.getDescriptions());
-        dto.setCategoryId(food.getMenuCategory().getCategoryId());
-        dto.setCategoryName(food.getMenuCategory().getNameCategory());
+        dto.setMerchantId(
+                (food.getMerchant() != null)
+                        ? food.getMerchant().getMerchantId()
+                        : "N/A"
+        );
+        dto.setCategoryId(
+                (food.getMenuCategory() != null)
+                        ? food.getMenuCategory().getCategoryId()
+                        : "N/A"
+        );
+        dto.setCategoryName(
+                (food.getMenuCategory() != null)
+                        ? food.getMenuCategory().getNameCategory()
+                        : "N/A"
+        );
         return dto;
     }
 }
