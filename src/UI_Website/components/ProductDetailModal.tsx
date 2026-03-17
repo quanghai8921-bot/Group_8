@@ -14,10 +14,10 @@ import { useCart, parsePrice } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Product, ToppingOption } from "@/lib/data";
+import { Food, Topping } from "@/lib/apiClient";
 
 interface ProductDetailModalProps {
-  product: Product;
+  product: Food;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -32,50 +32,50 @@ export default function ProductDetailModal({
   onClose,
 }: ProductDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
-  const [selectedToppings, setSelectedToppings] = useState<ToppingOption[]>([]);
+  const [selectedToppings, setSelectedToppings] = useState<Topping[]>([]);
 
   const cart = useCart();
   const auth = useAuth();
   const router = useRouter();
 
   // Handlers
-  const handleToppingToggle = (topping: ToppingOption) => {
+  const handleToppingToggle = (topping: Topping) => {
     setSelectedToppings((prev) => {
       const isSelected = prev.some(
-        (t) => t.ToppingId === topping.ToppingId,
+        (t) => t.toppingId === topping.toppingId,
       );
       if (isSelected) {
-        return prev.filter((t) => t.ToppingId !== topping.ToppingId);
+        return prev.filter((t) => t.toppingId !== topping.toppingId);
       }
       return [...prev, topping];
     });
   };
 
   const calculateTotalPrice = () => {
-    const basePrice = product.SalePrice || product.OriginalPrice || 0;
+    const basePrice = product.salePrice || product.originalPrice || 0;
     const toppingPrice = selectedToppings.reduce(
-      (sum, t) => sum + t.Price,
+      (sum, t) => sum + t.price,
       0,
     );
     return (basePrice + toppingPrice) * quantity;
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!auth.isAuthenticated) {
       router.push("/login");
       return;
     }
-    cart.addToCart(product, quantity, selectedToppings);
+    await cart.addToCart(product, quantity, selectedToppings);
     onClose();
-    alert(`Đã thêm ${quantity} ${product.FoodName} vào giỏ hàng!`);
+    alert(`Đã thêm ${quantity} ${product.foodName} vào giỏ hàng!`);
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!auth.isAuthenticated) {
       router.push("/login");
       return;
     }
-    cart.addToCart(product, quantity, selectedToppings);
+    await cart.addToCart(product, quantity, selectedToppings);
     router.push("/cart");
   };
 
@@ -86,13 +86,13 @@ export default function ProductDetailModal({
           {/* Image Section - Now on Top */}
           <div className="w-full h-72 relative shrink-0">
             <img
-              src={product.FoodImage}
-              alt={product.FoodName}
-              className="w-full h-full object-cover"
+              src={product.foodImage}
+              alt={product.foodName}
+              className={`w-full h-full object-cover ${product.foodStatus === 0 ? "grayscale" : ""}`}
             />
-            {product.discount && (
-              <div className="absolute top-4 left-4 bg-[#ee4d2d] text-white text-xs font-black px-3 py-1.5 rounded-full shadow-lg">
-                {product.discount}
+            {product.foodStatus === 0 && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="bg-white/90 text-gray-900 font-black text-sm px-6 py-3 rounded-full uppercase tracking-widest shadow-xl">Hết hàng</span>
               </div>
             )}
             {/* Close button area - the Dialog content usually has its own close button, but we ensure it doesn't overlap awkwardly */}
@@ -102,17 +102,17 @@ export default function ProductDetailModal({
           <div className="w-full p-6 flex flex-col gap-6 bg-white">
             <div>
               <Link
-                href={`/store/${product.MerchantId}`}
+                href={`/store/${product.merchantId}`}
                 className="flex items-center gap-2 text-[#ee4d2d] font-bold text-xs uppercase tracking-widest mb-2 hover:opacity-80 transition-opacity"
               >
                 <Store className="w-4 h-4" />
-                {product.merchantName || "Cửa hàng"}
+                {product.storeName || "Cửa hàng"}
               </Link>
               <DialogTitle className="text-2xl font-black text-gray-900 leading-tight mb-2">
-                {product.FoodName}
+                {product.foodName}
               </DialogTitle>
               <p className="text-gray-500 text-sm leading-relaxed">
-                {product.Descriptions}
+                {product.descriptions}
               </p>
             </div>
 
@@ -130,11 +130,11 @@ export default function ProductDetailModal({
                 <div className="space-y-2">
                   {product.toppingOptions.map((topping) => {
                     const isSelected = !!selectedToppings.find(
-                      (t) => t.ToppingId === topping.ToppingId,
+                      (t) => t.toppingId === topping.toppingId,
                     );
                     return (
                       <div
-                        key={topping.ToppingId}
+                        key={topping.toppingId}
                         className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer group ${
                           isSelected
                             ? "border-[#ee4d2d]/30 bg-orange-50/50"
@@ -157,11 +157,11 @@ export default function ProductDetailModal({
                           <span
                             className={`text-sm font-bold transition-colors ${isSelected ? "text-[#ee4d2d]" : "text-gray-700"}`}
                           >
-                            {topping.ToppingName}
+                            {topping.toppingName}
                           </span>
                         </div>
                         <span className="text-sm font-black text-[#ee4d2d]">
-                          +{topping.Price.toLocaleString("vi-VN")}đ
+                          +{topping.price.toLocaleString("vi-VN")}đ
                         </span>
                       </div>
                     );
@@ -204,24 +204,29 @@ export default function ProductDetailModal({
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
                     Tổng cộng
                   </span>
-                  <span className="text-2xl font-black text-[#ee4d2d] tracking-tight">
+                  <span className={`text-2xl font-black tracking-tight ${product.foodStatus === 0 ? "text-gray-400" : "text-[#ee4d2d]"}`}>
                     {calculateTotalPrice().toLocaleString("vi-VN")} VNĐ
                   </span>
+                  {product.foodStatus === 0 && (
+                    <span className="text-[10px] font-black text-[#ee4d2d] uppercase tracking-widest mt-1">Sản phẩm hiện đã hết hàng</span>
+                  )}
                 </div>
               </div>
 
               <div className="flex flex-col gap-3">
                 <Button
                   onClick={handleBuyNow}
-                  className="w-full h-14 bg-[#ee4d2d] hover:bg-[#d73211] text-white font-black uppercase tracking-widest rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-orange-100"
+                  disabled={product.foodStatus === 0}
+                  className="w-full h-14 bg-[#ee4d2d] hover:bg-[#d73211] text-white font-black uppercase tracking-widest rounded-2xl transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-orange-100 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none disabled:scale-100"
                 >
                   <CreditCard className="w-5 h-5 mr-2" />
                   MUA NGAY
                 </Button>
                 <Button
                   onClick={handleAddToCart}
+                  disabled={product.foodStatus === 0}
                   variant="outline"
-                  className="w-full h-14 border-2 border-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 hover:border-gray-200 transition-all flex items-center justify-center"
+                  className="w-full h-14 border-2 border-gray-100 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 hover:border-gray-200 transition-all flex items-center justify-center disabled:opacity-50"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
                   Thêm vào giỏ hàng

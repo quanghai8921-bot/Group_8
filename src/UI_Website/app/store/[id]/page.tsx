@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
-import { Product } from "@/lib/data";
-import { getMockProducts } from "@/lib/apiClient";
+import { getMerchantById, getFoodsByMerchant, Food, Merchant } from "@/lib/apiClient";
 import { Store, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -18,18 +17,24 @@ const StorePage = () => {
   const router = useRouter();
   const merchantId = params.id as string;
 
-  const [storeProducts, setStoreProducts] = useState<Product[]>([]);
+  const [storeProducts, setStoreProducts] = useState<Food[]>([]);
+  const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStoreData = async () => {
+      if (!merchantId) return;
       setIsLoading(true);
       try {
-        const allProducts = await getMockProducts();
-        const filtered = allProducts.filter((p) => p.MerchantId === merchantId);
-        setStoreProducts(filtered);
+        const [merchantData, foodsData] = await Promise.all([
+          getMerchantById(merchantId),
+          getFoodsByMerchant(merchantId)
+        ]);
+        setMerchant(merchantData);
+        const visibleFoods = (foodsData || []).filter(food => food.foodStatus !== -1);
+        setStoreProducts(visibleFoods);
       } catch (error) {
-        console.error("Error fetching store products:", error);
+        console.error("Error fetching store data:", error);
       } finally {
         setIsLoading(false);
       }
@@ -37,9 +42,7 @@ const StorePage = () => {
     fetchStoreData();
   }, [merchantId]);
 
-  // Lấy tên merchant từ sản phẩm đầu tiên (nếu có)
-  const merchantName =
-    storeProducts.length > 0 ? storeProducts[0].merchantName || "Cửa hàng" : "Cửa hàng";
+  const merchantName = merchant?.storeName || "Cửa hàng";
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -95,7 +98,7 @@ const StorePage = () => {
         ) : storeProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {storeProducts.map((product) => (
-              <ProductCard key={product.FoodId} product={product} />
+              <ProductCard key={product.foodId} product={product} />
             ))}
           </div>
         ) : (

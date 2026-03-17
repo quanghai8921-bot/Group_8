@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { getUserOrders, Order } from "@/lib/apiClient";
+import { useAuth } from "@/context/AuthContext";
 import {
   Package,
   ChevronRight,
@@ -12,77 +14,54 @@ import {
   CheckCircle2,
   Truck,
   Receipt,
+  X,
 } from "lucide-react";
-
-// Mock data for orders
-const MOCK_ORDERS = [
-  {
-    id: "SHOPEEFOOD_827163",
-    date: "09/03/2026",
-    total: 125000,
-    status: "SHIPPING",
-    statusLabel: "Đang giao",
-    items: ["Phở Bò (2)", "Nước Chanh (1)"],
-    shopName: "Phở Gia Truyền",
-  },
-  {
-    id: "SHOPEEFOOD_192837",
-    date: "08/03/2026",
-    total: 85000,
-    status: "DELIVERED",
-    statusLabel: "Đã giao",
-    items: ["Cơm Tấm Sườn (1)", "Trà Đá (1)"],
-    shopName: "Cơm Tấm Bụi",
-  },
-  {
-    id: "SHOPEEFOOD_456789",
-    date: "07/03/2026",
-    total: 210000,
-    status: "DELIVERED",
-    statusLabel: "Đã giao",
-    items: ["Pizza Hải Sản (1)", "Coca Cola (2)"],
-    shopName: "The Pizza Company",
-  },
-];
 
 export default function OrdersPage() {
   const router = useRouter();
+  const { userId } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredOrders = MOCK_ORDERS.filter(
+  useEffect(() => {
+    if (userId) {
+      getUserOrders(userId)
+        .then((data) => {
+          setOrders(data || []);
+        })
+        .catch(err => console.error("Error fetching orders:", err))
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
+    }
+  }, [userId]);
+
+  const filteredOrders = orders.filter(
     (order) =>
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.shopName.toLowerCase().includes(searchTerm.toLowerCase()),
+      order.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.storeName || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusColor = (status: string) => {
+  const getStatusInfo = (status: number) => {
     switch (status) {
-      case "SHIPPING":
-        return "text-blue-500 bg-blue-50 border-blue-100";
-      case "DELIVERED":
-        return "text-green-500 bg-green-50 border-green-100";
-      case "PREPARING":
-        return "text-orange-500 bg-orange-50 border-orange-100";
+      case 0:
+        return { label: "Đã hủy", color: "text-red-500 bg-red-50 border-red-100", icon: <X className="w-4 h-4" /> };
+      case 1:
+        return { label: "Chờ xác nhận", color: "text-gray-500 bg-gray-50 border-gray-100", icon: <Clock className="w-4 h-4" /> };
+      case 2:
+        return { label: "Đang chuẩn bị", color: "text-orange-500 bg-orange-50 border-orange-100", icon: <Package className="w-4 h-4" /> };
+      case 3:
+        return { label: "Đang giao", color: "text-blue-500 bg-blue-50 border-blue-100", icon: <Truck className="w-4 h-4" /> };
+      case 4:
+        return { label: "Thành công", color: "text-green-500 bg-green-50 border-green-100", icon: <CheckCircle2 className="w-4 h-4" /> };
       default:
-        return "text-gray-500 bg-gray-50 border-gray-100";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "SHIPPING":
-        return <Truck className="w-4 h-4" />;
-      case "DELIVERED":
-        return <CheckCircle2 className="w-4 h-4" />;
-      case "PREPARING":
-        return <Package className="w-4 h-4" />;
-      default:
-        return <Clock className="w-4 h-4" />;
+        return { label: "N/A", color: "text-gray-500 bg-gray-50 border-gray-100", icon: <Clock className="w-4 h-4" /> };
     }
   };
 
   function formatVNDPrice(amount: number) {
-    return amount.toLocaleString("vi-VN", {
+    return (amount || 0).toLocaleString("vi-VN", {
       style: "currency",
       currency: "VND",
     });
@@ -116,81 +95,91 @@ export default function OrdersPage() {
         </div>
 
         <div className="space-y-6">
-          {filteredOrders.length > 0 ? (
-            filteredOrders.map((order) => (
-              <div
-                key={order.id}
-                onClick={() => router.push("/order-status")}
-                className="group bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-[#ee4d2d]/20 transition-all cursor-pointer relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
-                  <Receipt className="w-20 h-20" />
-                </div>
+          {isLoading ? (
+            <div className="py-20 flex flex-col items-center justify-center gap-4">
+              <div className="h-10 w-10 border-4 border-orange-100 border-t-[#ee4d2d] rounded-full animate-spin" />
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Đang tải đơn hàng...</p>
+            </div>
+          ) : filteredOrders.length > 0 ? (
+            filteredOrders.map((order) => {
+              const statusInfo = getStatusInfo(order.orderStatus);
+              return (
+                <div
+                  key={order.orderId}
+                  onClick={() => router.push(`/order-status?id=${order.orderId}`)}
+                  className="group bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl hover:border-[#ee4d2d]/20 transition-all cursor-pointer relative overflow-hidden"
+                >
+                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                    <Receipt className="w-20 h-20" />
+                  </div>
 
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`p-4 rounded-2xl border ${getStatusColor(order.status)} transform group-hover:rotate-6 transition-transform`}
-                    >
-                      <Package className="w-6 h-6" />
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`p-4 rounded-2xl border ${statusInfo.color} transform group-hover:rotate-6 transition-transform`}
+                      >
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-gray-900 text-lg group-hover:text-[#ee4d2d] transition-colors">
+                          {order.storeName || "Cửa hàng ShopeeFood"}
+                        </h3>
+                        <div className="flex items-center gap-2 text-gray-400 text-sm font-bold">
+                          <span className="uppercase tracking-wider">
+                            #{order.orderId}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-black text-gray-900 text-lg group-hover:text-[#ee4d2d] transition-colors">
-                        {order.shopName}
-                      </h3>
-                      <div className="flex items-center gap-2 text-gray-400 text-sm font-bold">
-                        <span className="uppercase tracking-wider">
-                          {order.id}
-                        </span>
+
+                    <div
+                      className={`px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest flex items-center gap-2 ${statusInfo.color}`}
+                    >
+                      {statusInfo.icon}
+                      {statusInfo.label}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-50 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <Calendar className="w-5 h-5 text-gray-300" />
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                          Ngày đặt
+                        </p>
+                        <p className="font-bold text-gray-700">
+                          {new Date(order.orderTime).toLocaleDateString("vi-VN")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Receipt className="w-5 h-5 text-gray-300" />
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                          Sản phẩm
+                        </p>
+                        <p className="font-bold text-gray-700 truncate max-w-[150px]">
+                          {order.orderItemsSummary || "Đang cập nhật..."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between md:justify-end gap-3">
+                      <div className="text-right">
+                        <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                          Tổng cộng
+                        </p>
+                        <p className="font-black text-xl text-[#ee4d2d]">
+                          {formatVNDPrice(order.finalAmount)}
+                        </p>
+                      </div>
+                      <div className="p-2 bg-gray-50 rounded-xl group-hover:bg-[#ee4d2d] group-hover:text-white transition-all transform group-hover:translate-x-1">
+                        <ChevronRight className="w-5 h-5" />
                       </div>
                     </div>
                   </div>
-
-                  <div
-                    className={`px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest flex items-center gap-2 ${getStatusColor(order.status)}`}
-                  >
-                    {getStatusIcon(order.status)}
-                    {order.statusLabel}
-                  </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-50 relative z-10">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-gray-300" />
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
-                        Ngày đặt
-                      </p>
-                      <p className="font-bold text-gray-700">{order.date}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Receipt className="w-5 h-5 text-gray-300" />
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
-                        Sản phẩm
-                      </p>
-                      <p className="font-bold text-gray-700 truncate max-w-[150px]">
-                        {order.items.join(", ")}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between md:justify-end gap-3">
-                    <div className="text-right">
-                      <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
-                        Tổng cộng
-                      </p>
-                      <p className="font-black text-xl text-[#ee4d2d]">
-                        {formatVNDPrice(order.total)}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-gray-50 rounded-xl group-hover:bg-[#ee4d2d] group-hover:text-white transition-all transform group-hover:translate-x-1">
-                      <ChevronRight className="w-5 h-5" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="bg-white p-20 rounded-3xl border border-gray-100 text-center flex flex-col items-center gap-4">
               <div className="p-6 bg-gray-50 rounded-full">
@@ -200,7 +189,7 @@ export default function OrdersPage() {
                 Không tìm thấy đơn hàng
               </h3>
               <p className="text-gray-400 font-medium max-w-xs">
-                Thử tìm kiếm với mã đơn hàng hoặc tên quán khác bạn nhé.
+                Bạn chưa có đơn hàng nào hoặc không tìm thấy kết quả phù hợp.
               </p>
             </div>
           )}

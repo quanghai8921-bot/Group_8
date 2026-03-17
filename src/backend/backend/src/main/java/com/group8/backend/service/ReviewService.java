@@ -1,7 +1,9 @@
 package com.group8.backend.service;
 
-import com.group8.backend.dto.ReviewDTO;
+import com.group8.backend.model.Review;
+import java.util.List;
 
 public interface ReviewService {
-    void submitReview(ReviewDTO dto);
+    List<Review> getReviewsByMerchant(String merchantId);
+    Review createReview(Review review);
 }

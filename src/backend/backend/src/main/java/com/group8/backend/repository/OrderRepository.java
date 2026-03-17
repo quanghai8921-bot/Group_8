@@ -10,4 +10,5 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, String> {
     List<Order> findByUser_UserId(String userId);
     List<Order> findByMerchant_MerchantId(String merchantId);
+    boolean existsByUser_UserIdAndVoucher_VoucherId(String userId, String voucherId);
 }

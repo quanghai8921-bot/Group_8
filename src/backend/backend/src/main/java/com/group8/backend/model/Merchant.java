@@ -1,5 +1,6 @@
 package com.group8.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.Set;
@@ -47,15 +48,16 @@ public class Merchant {
     private byte rating = 5;
 
     // Relationships
-    @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL)
-    private Set<MenuCategory> menuCategories;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL)
     private Set<OptionTopping> optionToppings;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL)
     private Set<Cart> carts;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL)
     private Set<Order> orders;
 }

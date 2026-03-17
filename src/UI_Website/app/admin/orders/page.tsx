@@ -3,70 +3,45 @@
 import { useState, useEffect } from "react";
 import { Search, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import apiClient from "@/lib/apiClient";
 
 export default function OrderManagement() {
   const [orderList, setOrderList] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   function getStatusDisplayName(statusValue: number | string) {
     const statusMap: Record<string, string> = {
       "1": "pending",
-      "2": "accepted",
-      "3": "preparing",
-      "4": "delivering",
-      "5": "completed",
+      "2": "preparing",
+      "3": "delivering",
+      "4": "completed",
     };
     return statusMap[String(statusValue)] || "pending";
   }
 
   async function fetchOrdersFromServer() {
     try {
-      const response = await fetch("/api/orders", { cache: "no-store" });
+      const response = await apiClient.get("/orders");
 
-      if (response.ok) {
-        const data = await response.json();
-        const rawOrders = data.orders || [];
+      if (response.data && response.data.success) {
+        const rawOrders = response.data.data || [];
 
         const formattedOrders = rawOrders.map(function (order: any) {
-          const statusLabel = getStatusDisplayName(order.orderstatus);
-
-          const paymentRecord = Array.isArray(order.payments)
-            ? order.payments.length > 0
-              ? order.payments[0]
-              : null
-            : order.payments;
-
-          const paymentStatus = paymentRecord?.paymentstatus || "pending";
+          const statusLabel = getStatusDisplayName(order.orderStatus);
 
           return {
-            id: order.orderid,
-            customerName: order.users?.fullname || "Guest",
-            customerEmail: order.users?.email,
-            orderItemsSummary:
-              (order.orderitems || [])
-                .map(function (item: any) {
-                  const toppingList = item.orderitemtoppings
-                    ?.map(function (t: any) {
-                      return t.toppingoptions?.toppingname;
-                    })
-                    .filter(Boolean)
-                    .join(", ");
-
-                  return (
-                    item.fooditems?.foodname +
-                    (toppingList ? ` (+${toppingList})` : "")
-                  );
-                })
-                .filter(Boolean)
-                .join(", ") || "No items",
+            id: order.orderId,
+            customerName: order.customerName || "Khách",
+            customerEmail: order.customerEmail,
+            orderItemsSummary: order.orderItemsSummary || "Đơn hàng hệ thống",
             totalPriceFormatted:
-              new Intl.NumberFormat("vi-VN").format(order.finalamount || 0) +
-              "đ",
-            orderTimeFormatted: new Date(order.ordertime).toLocaleTimeString(
+              new Intl.NumberFormat("vi-VN").format(order.finalAmount || 0) + "đ",
+            orderTimeFormatted: new Date(order.orderTime).toLocaleTimeString(
               [],
               { hour: "2-digit", minute: "2-digit" },
             ),
             currentStatus: statusLabel,
-            currentPaymentStatus: paymentStatus,
+            currentPaymentStatus: "completed", // Simplification for now
             customerAvatar: "/images/avatar-placeholder.jpg",
           };
         });
@@ -75,13 +50,15 @@ export default function OrderManagement() {
       }
     } catch (error) {
       console.error("Critical error while loading orders:", error);
+    } finally {
+      setIsLoading(false);
     }
   }
 
   useEffect(function onComponentMount() {
     fetchOrdersFromServer();
 
-    const pollingInterval = setInterval(fetchOrdersFromServer, 5000);
+    const pollingInterval = setInterval(fetchOrdersFromServer, 10000);
 
     return function onComponentUnmount() {
       clearInterval(pollingInterval);
@@ -89,14 +66,19 @@ export default function OrderManagement() {
   }, []);
 
   async function changeOrderStatus(orderId: string, targetStatus: string) {
+    const statusMap: Record<string, number> = {
+      "pending": 1,
+      "preparing": 2,
+      "delivering": 3,
+      "completed": 4,
+    };
+    
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: targetStatus }),
+      const response = await apiClient.patch(`/orders/${orderId}/status`, { 
+        status: statusMap[targetStatus] 
       });
 
-      if (response.ok) {
+      if (response.data && response.data.success) {
         setOrderList(function (previousList) {
           return previousList.map(function (order) {
             return order.id === orderId
@@ -104,11 +86,8 @@ export default function OrderManagement() {
               : order;
           });
         });
-
-        window.location.reload();
       } else {
-        const errorData = await response.json();
-        alert("Lỗi cập nhật: " + (errorData.error || "Không rõ nguyên nhân"));
+        alert("Lỗi cập nhật: " + (response.data.message || "Không rõ nguyên nhân"));
       }
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -116,180 +95,120 @@ export default function OrderManagement() {
     }
   }
 
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64 bg-white rounded-3xl shadow-sm border border-gray-100 italic text-gray-400">
+      Đang tải danh sách đơn hàng...
+    </div>
+  );
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      {}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Quản lý Đơn hàng</h1>
           <p className="text-gray-500 mt-1">
-            Manage incoming orders and track their delivery progress
+            Theo dõi và cập nhật trạng thái các đơn hàng trên toàn hệ thống
           </p>
         </div>
       </div>
 
-      {}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-gray-900 text-lg">Incoming Orders</h3>
-          {}
+          <h3 className="font-bold text-gray-900 text-lg">Đơn hàng mới nhất</h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-gray-50/50 text-gray-500 text-sm font-semibold border-b border-gray-100">
-                <th className="px-6 py-4 rounded-tl-xl whitespace-nowrap">
-                  Order ID
-                </th>
-                <th className="px-6 py-4 whitespace-nowrap">Customer</th>
-                <th className="px-6 py-4 whitespace-nowrap">Items</th>
-                <th className="px-6 py-4 whitespace-nowrap">Price</th>
-                <th className="px-6 py-4 whitespace-nowrap">Time</th>
-                <th className="px-6 py-4 whitespace-nowrap">Status</th>
-                <th className="px-6 py-4 rounded-tr-xl text-center whitespace-nowrap">
-                  Actions
-                </th>
+                <th className="px-6 py-4 rounded-tl-xl whitespace-nowrap">Mã đơn</th>
+                <th className="px-6 py-4 whitespace-nowrap">Khách hàng</th>
+                <th className="px-6 py-4 whitespace-nowrap">Tổng tiền</th>
+                <th className="px-6 py-4 whitespace-nowrap">Thời gian</th>
+                <th className="px-6 py-4 whitespace-nowrap">Trạng thái</th>
+                <th className="px-6 py-4 rounded-tr-xl text-center whitespace-nowrap">Thao tác</th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-50">
               {orderList.map(function (order) {
                 return (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-gray-50/50 transition-colors"
-                  >
+                  <tr key={order.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-5">
-                      <span className="font-bold text-gray-900">
-                        {order.id}
-                      </span>
+                      <span className="font-bold text-gray-900">{order.id}</span>
                     </td>
 
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                          <img
-                            src={order.customerAvatar}
-                            alt={order.customerName}
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                          {order.customerName.charAt(0)}
                         </div>
-                        <span className="font-medium text-gray-700">
-                          {order.customerName}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-700">{order.customerName}</span>
+                          <span className="text-[10px] text-gray-400">{order.customerEmail}</span>
+                        </div>
                       </div>
                     </td>
 
                     <td className="px-6 py-5">
-                      <span className="text-sm text-gray-600 line-clamp-1">
-                        {order.orderItemsSummary}
-                      </span>
+                      <span className="font-bold text-[#ee4d2d]">{order.totalPriceFormatted}</span>
                     </td>
 
                     <td className="px-6 py-5">
-                      <span className="font-bold text-gray-900">
-                        {order.totalPriceFormatted}
-                      </span>
+                      <span className="text-sm text-gray-500">{order.orderTimeFormatted}</span>
                     </td>
 
                     <td className="px-6 py-5">
-                      <span className="text-sm text-gray-500">
-                        {order.orderTimeFormatted}
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        order.currentStatus === 'completed' ? 'bg-green-50 text-green-600' :
+                        order.currentStatus === 'pending' ? 'bg-orange-50 text-orange-600' :
+                        'bg-blue-50 text-blue-600'
+                      }`}>
+                        {order.currentStatus}
                       </span>
                     </td>
 
-                    {}
-                    <td className="px-6 py-5">
-                      {order.currentStatus === "pending" && (
-                        <span
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            order.currentPaymentStatus === "completed"
-                              ? "bg-green-100 text-green-700 border border-green-200"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {order.currentPaymentStatus === "completed"
-                            ? "Paid - Confirm Now"
-                            : "Awaiting Payment"}
-                        </span>
-                      )}
-                      {order.currentStatus === "accepted" && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
-                          Confirmed
-                        </span>
-                      )}
-                      {order.currentStatus === "preparing" && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 border border-yellow-200">
-                          Preparing
-                        </span>
-                      )}
-                      {order.currentStatus === "delivering" && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                          Delivering
-                        </span>
-                      )}
-                      {order.currentStatus === "completed" && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
-                          Completed
-                        </span>
-                      )}
-                    </td>
-
-                    {}
                     <td className="px-6 py-5 text-center">
-                      {order.currentStatus === "pending" && (
-                        <button
-                          onClick={function () {
-                            changeOrderStatus(order.id, "accepted");
-                          }}
-                          className="inline-flex px-4 py-2 font-bold text-xs bg-[#ee4d2d] hover:bg-[#d73211] text-white rounded-lg transition-colors shadow-sm"
-                        >
-                          Confirm Order
-                        </button>
-                      )}
-                      {order.currentStatus === "accepted" && (
-                        <button
-                          onClick={function () {
-                            changeOrderStatus(order.id, "preparing");
-                          }}
-                          className="inline-flex px-4 py-2 font-bold text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors shadow-sm"
-                        >
-                          Start Cooking
-                        </button>
-                      )}
-                      {order.currentStatus === "preparing" && (
-                        <button
-                          onClick={function () {
-                            changeOrderStatus(order.id, "delivering");
-                          }}
-                          className="inline-flex px-4 py-2 font-bold text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors shadow-sm"
-                        >
-                          Ship Order
-                        </button>
-                      )}
-                      {order.currentStatus === "delivering" && (
-                        <button
-                          onClick={function () {
-                            changeOrderStatus(order.id, "completed");
-                          }}
-                          className="inline-flex px-4 py-2 font-bold text-xs bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors shadow-sm"
-                        >
-                          Finalize
-                        </button>
-                      )}
-                      {order.currentStatus === "completed" && (
-                        <div className="flex items-center justify-center gap-1.5 text-purple-600 text-sm font-bold">
-                          <CheckCircle2 className="w-4 h-4" />
-                          Handed Over
-                        </div>
-                      )}
+                      <div className="flex justify-center gap-2">
+                        {order.currentStatus === "pending" && (
+                          <button
+                            onClick={() => changeOrderStatus(order.id, "preparing")}
+                            className="px-3 py-1.5 bg-[#ee4d2d] text-white text-[10px] font-bold rounded-lg uppercase"
+                          >
+                            Duyệt
+                          </button>
+                        )}
+                        {order.currentStatus === "preparing" && (
+                          <button
+                            onClick={() => changeOrderStatus(order.id, "delivering")}
+                            className="px-3 py-1.5 bg-blue-500 text-white text-[10px] font-bold rounded-lg uppercase"
+                          >
+                            Giao hàng
+                          </button>
+                        )}
+                        {order.currentStatus === "delivering" && (
+                          <div className="flex items-center gap-1 text-blue-500 text-[10px] font-bold uppercase animate-pulse">
+                            Đang giao
+                          </div>
+                        )}
+                        {order.currentStatus === "completed" && (
+                          <div className="flex items-center gap-1 text-green-600 text-[10px] font-bold uppercase">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Xong
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+          {orderList.length === 0 && (
+            <div className="py-20 text-center text-gray-400 italic">
+              Không có đơn hàng nào trong hệ thống
+            </div>
+          )}
         </div>
       </div>
     </div>

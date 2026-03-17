@@ -14,6 +14,17 @@ public class OrderResponseDTO {
     private Long shippingFee;
     private Long discountAmount;
     private Long finalAmount;
-    private Boolean orderStatus;
+    private Integer orderStatus;
     private String deliveryAddress;
+    private String customerName;
+    private String customerEmail;
+    private String storeName;
+    private String orderItemsSummary;
+    private String contactPhone;
+    private String customerNote;
+    private String driverName;
+    private String driverPhone;
+    private String licensePlate;
+    private String vehicleType;
+    private String paymentMethod;
 }

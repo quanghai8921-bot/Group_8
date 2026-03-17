@@ -29,13 +29,13 @@ public class DriverServiceImpl implements DriverService {
         
         // Sửa lỗi: Kiểm tra tên trường trong Order.java, thường là status (bit/boolean)
         // Dựa trên SQL: OrderStatus BIT DEFAULT 1
-        if (order.getOrderStatus() == false) { 
+        if (order.getOrderStatus() != 1) { 
             throw new RuntimeException("Order is not available");
         }
         
         order.setDriver(driver);
         // Nếu SQL là BIT, Java mapping sẽ là Boolean
-        order.setOrderStatus(false); // Đánh dấu đã có người nhận
+        order.setOrderStatus(2); // Accepted
         orderRepository.save(order);
     }
 
@@ -50,7 +50,7 @@ public class DriverServiceImpl implements DriverService {
         }
         
         // Sửa lỗi: Chuyển byte status sang boolean cho cột BIT
-        order.setOrderStatus(status == 1); 
+        order.setOrderStatus((int) status); 
         orderRepository.save(order);
     }
 

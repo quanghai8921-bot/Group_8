@@ -8,62 +8,40 @@ import {
   User,
   ShoppingBag,
 } from "lucide-react";
-import { getMockReviews } from "@/lib/apiClient";
-
-interface Review {
-  ReviewId: string;
-  OrderId: string;
-  Rating: number;
-  Comment: string;
-  ReviewType: string; // 'Order' | 'FoodItem'
-  ReviewDate: string;
-  MediaUrl?: string;
-  // Join fields
-  FullName?: string;
-  PhoneNumber?: string;
-  FoodName?: string;
-  FoodImage?: string;
-  OrderDate?: string;
-}
+import { getMerchantReviews, Review } from "@/lib/apiClient";
+import { useMerchant } from "@/hooks/useMerchant";
 
 export default function MerchantReviews() {
+  const { merchantId, isLoading: isMerchantLoading, error: merchantError } = useMerchant();
   const [reviewList, setReviewList] = useState<Review[]>([]);
   const [activeRatingFilter, setActiveRatingFilter] = useState<number | null>(null);
   const [activeTypeFilter, setActiveTypeFilter] = useState<string>("Order");
   const [isPageLoading, setIsPageLoading] = useState(true);
 
   async function fetchReviewsFromServer() {
+    if (!merchantId) return;
     setIsPageLoading(true);
     try {
-      const reviews = await getMockReviews();
-      setReviewList(reviews);
+      const reviews = await getMerchantReviews(merchantId);
+      setReviewList(reviews || []);
     } catch (error) {
       console.error("Critical error while loading reviews:", error);
-      setReviewList([
-        {
-          ReviewId: "REV-001",
-          OrderId: "ORD-001",
-          Rating: 5,
-          Comment: "Cửa hàng phục vụ rất tốt!",
-          ReviewType: "Order",
-          ReviewDate: new Date().toISOString(),
-          FullName: "Khách hàng mẫu",
-          PhoneNumber: "0912345678",
-          MediaUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop",
-        },
-      ]);
+      setReviewList([]);
     } finally {
       setIsPageLoading(false);
     }
   }
 
-  useEffect(function onComponentMount() {
-    fetchReviewsFromServer();
-  }, []);
+  useEffect(() => {
+    if (merchantId) {
+        fetchReviewsFromServer();
+    }
+  }, [merchantId]);
 
-  const filteredReviews = reviewList.filter((review) => {
-    const isRatingMatch = activeRatingFilter === null || review.Rating === activeRatingFilter;
-    const isTypeMatch = activeTypeFilter === "all" || review.ReviewType === activeTypeFilter;
+  const effectiveReviewList = reviewList || [];
+  const filteredReviews = effectiveReviewList.filter((review) => {
+    const isRatingMatch = activeRatingFilter === null || review.rating === activeRatingFilter;
+    const isTypeMatch = activeTypeFilter === "all" || review.reviewType === activeTypeFilter;
     return isRatingMatch && isTypeMatch;
   });
 
@@ -117,11 +95,11 @@ export default function MerchantReviews() {
             </div>
           ) : (
             filteredReviews.map((review) => (
-              <div key={review.ReviewId} className="p-8 hover:bg-gray-50/50 transition-all">
+              <div key={review.reviewId} className="p-8 hover:bg-gray-50/50 transition-all">
                 <div className="flex flex-col lg:flex-row gap-8">
                   <div className="w-full lg:w-1/4 space-y-6 lg:border-r border-gray-100 pr-8">
-                    <span className={`inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${review.ReviewType === "Order" ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-orange-50 text-orange-600 border-orange-100"}`}>
-                      {review.ReviewType === "Order" ? "Đơn hàng" : "Món ăn"}
+                    <span className={`inline-block px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${review.reviewType === "Order" ? "bg-blue-50 text-blue-600 border-blue-100" : "bg-orange-50 text-orange-600 border-orange-100"}`}>
+                      {review.reviewType === "Order" ? "Đơn hàng" : "Món ăn"}
                     </span>
 
                     <div className="space-y-4">
@@ -130,8 +108,8 @@ export default function MerchantReviews() {
                           <User className="w-5 h-5 text-gray-300" />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-gray-900">{review.FullName || "Ẩn danh"}</p>
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{review.PhoneNumber}</p>
+                          <p className="text-sm font-black text-gray-900">{review.fullName || "Ẩn danh"}</p>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{review.phoneNumber}</p>
                         </div>
                       </div>
 
@@ -140,10 +118,10 @@ export default function MerchantReviews() {
                           <ShoppingBag className="w-5 h-5 text-gray-300" />
                         </div>
                         <div>
-                          <p className="text-xs font-black text-[#ee4d2d] uppercase tracking-tighter cursor-pointer hover:underline">#{review.OrderId.substring(0, 8)}</p>
+                          <p className="text-xs font-black text-[#ee4d2d] uppercase tracking-tighter cursor-pointer hover:underline">#{review.orderId?.substring(0, 8)}</p>
                           <div className="flex items-center gap-1 text-[9px] font-black text-gray-400 uppercase tracking-widest">
                             <Calendar className="w-3 h-3" />
-                            {new Date(review.OrderDate || review.ReviewDate).toLocaleDateString("vi-VN")}
+                            {new Date(review.reviewDate || review.createdAt || "").toLocaleDateString("vi-VN")}
                           </div>
                         </div>
                       </div>
@@ -154,28 +132,28 @@ export default function MerchantReviews() {
                     <div className="flex items-center justify-between">
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} className={`w-5 h-5 ${s <= review.Rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-100 text-gray-200"}`} />
+                          <Star key={s} className={`w-5 h-5 ${s <= review.rating ? "fill-yellow-400 text-yellow-400" : "fill-gray-100 text-gray-200"}`} />
                         ))}
                       </div>
                       <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                        Gửi lúc: {new Date(review.ReviewDate).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
+                        Gửi lúc: {new Date(review.reviewDate || review.createdAt || "").toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
 
-                    {review.MediaUrl && (
+                    {review.mediaUrl && (
                       <div className="relative w-48 h-48 rounded-[32px] overflow-hidden border-4 border-white shadow-xl transition-transform hover:scale-105 cursor-zoom-in">
-                        <img src={review.MediaUrl} alt="Review" className="object-cover w-full h-full" />
+                        <img src={review.mediaUrl} alt="Review" className="object-cover w-full h-full" />
                       </div>
                     )}
 
-                    {review.ReviewType === "FoodItem" && review.FoodName && (
+                    {review.reviewType === "FoodItem" && review.foodName && (
                       <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl border border-gray-100">
                         <div className="h-14 w-14 rounded-2xl overflow-hidden shadow-sm flex-shrink-0">
-                          <img src={review.FoodImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="object-cover w-full h-full" />
+                          <img src={review.foodImage || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="object-cover w-full h-full" />
                         </div>
                         <div>
                           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Sản phẩm</p>
-                          <p className="text-sm font-black text-gray-900 leading-tight">{review.FoodName}</p>
+                          <p className="text-sm font-black text-gray-900 leading-tight">{review.foodName}</p>
                         </div>
                       </div>
                     )}
@@ -183,7 +161,7 @@ export default function MerchantReviews() {
                     <div className="bg-orange-50/50 rounded-[40px] p-8 relative border border-orange-100 group hover:bg-orange-50 transition-colors">
                       <MessageSquare className="absolute top-6 right-8 w-8 h-8 text-orange-100" />
                       <p className="text-xl font-bold text-gray-800 leading-relaxed italic pr-12">
-                        {review.Comment ? `"${review.Comment}"` : "Khách hàng không để lại nhận xét."}
+                        {review.comment ? `"${review.comment}"` : "Khách hàng không để lại nhận xét."}
                       </p>
                     </div>
                   </div>

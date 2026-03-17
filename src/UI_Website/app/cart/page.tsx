@@ -31,18 +31,12 @@ export default function CartPage() {
     }).format(amount);
   }
 
-  function handleQuantityChange(item: any, newQuantity: number) {
-    const toppings = item.selectedToppings || [];
-    const finalKey = toppings.length > 0 
-      ? `${item.FoodId}-${toppings.map((t: any) => t.ToppingName).sort().join(",")}` 
-      : item.FoodId;
-    
+  async function handleQuantityChange(item: any, newQuantity: number) {
     if (newQuantity <= 0) {
-      deleteItemFromCart(finalKey);
+      await deleteItemFromCart(item.foodId, item.selectedToppings);
     } else {
-      changeItemQuantity(finalKey, newQuantity);
-      deleteItemFromCart(finalKey);
-    } 
+      await changeItemQuantity(item.foodId, newQuantity, item.selectedToppings);
+    }
   }
 
   const handleCheckout = () => {
@@ -51,8 +45,6 @@ export default function CartPage() {
       pageRouter.push("/login");
       return;
     }
-
-    // Chuyển hướng sang trang thanh toán giả lập thay vì gọi API đặt hàng trực tiếp
     pageRouter.push("/checkout");
   };
 
@@ -82,24 +74,29 @@ export default function CartPage() {
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                 <div className="space-y-8">
-                   {itemsInCart.map(function (item) {
+                   {itemsInCart.map(function (item, idx) {
                     return (
                       <div
-                        key={item.FoodId}
+                        key={`${item.foodId}-${idx}`}
                         className="flex flex-col sm:flex-row items-center gap-6 border-b border-gray-50 pb-8 last:border-0 last:pb-0 group"
                       >
                         <img
-                          src={item.FoodImage}
-                          alt={item.FoodName}
+                          src={item.foodImage || "/placeholder-food.jpg"}
+                          alt={item.foodName}
                           className="w-28 h-28 object-cover rounded-2xl shadow-sm group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="flex-1 text-center sm:text-left">
                           <h3 className="font-bold text-xl text-gray-900 mb-1">
-                            {item.FoodName}
+                            {item.foodName}
                           </h3>
                           <p className="text-gray-500 font-medium">
-                            Đơn giá: {(item.Price || 0).toLocaleString("vi-VN")}đ
+                            Đơn giá: {(item.price || 0).toLocaleString("vi-VN")}đ
                           </p>
+                          {item.selectedToppings && item.selectedToppings.length > 0 && (
+                            <div className="text-xs text-gray-400 mt-1">
+                              Toppings: {item.selectedToppings.map(t => t.toppingName).join(", ")}
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-3 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
                           <Button
@@ -107,7 +104,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-9 w-9 rounded-lg hover:bg-white hover:shadow-sm text-gray-600 transition-all font-bold"
                             onClick={function () {
-                              handleQuantityChange(item, item.Quantity - 1);
+                              handleQuantityChange(item, item.quantity - 1);
                             }}
                           >
                             -
@@ -115,13 +112,8 @@ export default function CartPage() {
                           <Input
                             type="number"
                             min={1}
-                            value={item.Quantity}
-                            onChange={function (e) {
-                              handleQuantityChange(
-                                item.FoodId,
-                                Number(e.target.value) || 1,
-                              );
-                            }}
+                            readOnly
+                            value={item.quantity}
                             className="w-14 h-9 text-center bg-transparent border-none focus-visible:ring-0 font-bold text-gray-900"
                           />
                           <Button
@@ -129,7 +121,7 @@ export default function CartPage() {
                             size="icon"
                             className="h-9 w-9 rounded-lg hover:bg-white hover:shadow-sm text-gray-600 transition-all font-bold"
                             onClick={function () {
-                              handleQuantityChange(item, item.Quantity + 1);
+                              handleQuantityChange(item, item.quantity + 1);
                             }}
                           >
                             +
@@ -137,7 +129,7 @@ export default function CartPage() {
                         </div>
                         <div className="text-right min-w-[140px]">
                           <p className="font-bold text-xl text-[#ee4d2d]">
-                            {formatVNDCurrency((Number(item.Price) || 0) * (Number(item.Quantity) || 0))}
+                            {formatVNDCurrency((Number(item.price) || 0) * (Number(item.quantity) || 0))}
                           </p>
                         </div>
                         <Button
@@ -145,12 +137,7 @@ export default function CartPage() {
                           size="icon"
                           className="h-10 w-10 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                           onClick={function () {
-                            deleteItemFromCart(item.FoodId);
-                            const toppings = item.selectedToppings || [];
-                            const finalKey = toppings.length > 0 
-                              ? `${item.FoodId}-${toppings.map((t: any) => t.ToppingName).sort().join(",")}` 
-                              : item.FoodId;
-                            deleteItemFromCart(finalKey);
+                            deleteItemFromCart(item.foodId, item.selectedToppings);
                           }}
                         >
                           <Trash2 className="w-5 h-5" />
@@ -162,9 +149,9 @@ export default function CartPage() {
                 <Button
                   variant="outline"
                   className="mt-10 w-full sm:w-auto text-gray-500 hover:text-red-600 hover:border-red-200 rounded-xl border-gray-200"
-                  onClick={function () {
+                  onClick={async function () {
                     if (confirm("Bạn có chắc muốn xóa tất cả?"))
-                      emptyEntireCart();
+                      await emptyEntireCart();
                   }}
                 >
                   Xóa tất cả sản phẩm

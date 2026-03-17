@@ -124,10 +124,10 @@ export default function AdminLayout({
               isExpanded={isSidebarHovered}
             />
             <SidebarLink
-              href="/admin/merchant-requests"
+              href="/admin/applications"
               icon={<Store className="h-5 w-5" />}
-              label="Quản lý Merchant"
-              isActive={isPathActive("/admin/merchant-requests")}
+              label="Duyệt Merchant"
+              isActive={isPathActive("/admin/applications")}
               isExpanded={isSidebarHovered}
             />
           </nav>

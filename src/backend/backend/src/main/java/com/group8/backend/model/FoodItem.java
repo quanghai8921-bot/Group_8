@@ -43,8 +43,8 @@ public class FoodItem {
     @Column(name = "Descriptions", length = 255)
     private String descriptions;
 
-    @Column(name = "FoodStatus", nullable = false)
-    private Boolean foodStatus = true;
+    @Column(name = "FoodStatus", nullable = false, columnDefinition = "INT")
+    private Integer foodStatus = 1;
 
     // // Thêm cột tồn kho để phục vụ Simulator trừ kho (như đã trao đổi ở bước trước)
     // @Column(name = "StockQuantity")
@@ -53,7 +53,7 @@ public class FoodItem {
     // Relationships
     @ManyToMany
     @JoinTable(
-        name = "Food_Topping_Mapping",
+        name = "FoodToppings",
         joinColumns = @JoinColumn(name = "FoodId"),
         inverseJoinColumns = @JoinColumn(name = "ToppingId")
     )

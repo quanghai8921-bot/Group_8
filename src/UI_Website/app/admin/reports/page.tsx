@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import apiClient from "@/lib/apiClient";
 import {
   BarChart3,
   TrendingUp,
@@ -24,23 +25,19 @@ export default function Reports() {
 
   const [isDataLoading, setIsDataLoading] = useState(true);
 
-  useEffect(function onComponentMount() {
-    async function fetchBusinessStatistics() {
+  useEffect(() => {
+    const fetchBusinessStatistics = async () => {
       try {
-        const response = await fetch("/api/admin/stats");
-
-        if (response.ok) {
-          const data = await response.json();
-
-          setBusinessStatistics(data.stats);
+        const response = await apiClient.get("/admin/stats");
+        if (response.data && response.data.success) {
+          setBusinessStatistics(response.data.data);
         }
       } catch (error) {
         console.error("Failed to load business statistics:", error);
       } finally {
         setIsDataLoading(false);
       }
-    }
-
+    };
     fetchBusinessStatistics();
   }, []);
 

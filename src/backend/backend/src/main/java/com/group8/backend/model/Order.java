@@ -1,5 +1,6 @@
 package com.group8.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -56,21 +57,29 @@ public class Order {
     @Column(name = "FinalAmount", insertable = false, updatable = false)
     private Long finalAmount;
 
-    // QUAN TRỌNG: Sửa lại tên để khớp với DriverServiceImpl
-    // Trong SQL là OrderStatus BIT. Java map BIT thành Boolean hoặc boolean.
-    @Column(name = "OrderStatus")
-    private Boolean orderStatus = true; 
+    // In the user request SQL it's INT NOT NULL DEFAULT 1
+    @Column(name = "OrderStatus", nullable = false)
+    private Integer orderStatus = 1;
 
     @Column(name = "DeliveryAddress", length = 255, nullable = false)
     private String deliveryAddress;
 
+    @Column(name = "ContactPhone", length = 20)
+    private String contactPhone;
+
+    @Column(name = "CustomerNote", length = 255)
+    private String customerNote;
+
     // Relationships
+    @JsonIgnore
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private Set<OrderDetail> orderDetails;
 
+    @JsonIgnore
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
     private Payment payment;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private Set<Review> reviews;
 

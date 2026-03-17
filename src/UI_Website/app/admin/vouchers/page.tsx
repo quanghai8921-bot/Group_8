@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus,
   Ticket,
@@ -50,50 +50,9 @@ interface Voucher {
   status: "Active" | "Expired" | "Scheduled";
 }
 
-const INITIAL_VOUCHERS: Voucher[] = [
-  {
-    id: "1",
-    code: "WELCOME50",
-    type: "food",
-    discountType: "Fixed",
-    value: 50000,
-    minSpend: 200000,
-    usageLimit: 100,
-    usedCount: 45,
-    startDate: "2026-03-01",
-    endDate: "2026-04-01",
-    status: "Active",
-  },
-  {
-    id: "2",
-    code: "FREESHIP",
-    type: "shipping",
-    discountType: "Fixed",
-    value: 15000,
-    minSpend: 100000,
-    usageLimit: 500,
-    usedCount: 120,
-    startDate: "2026-03-01",
-    endDate: "2026-05-01",
-    status: "Active",
-  },
-  {
-    id: "3",
-    code: "FOODLOVER20",
-    type: "food",
-    discountType: "Percentage",
-    value: 20,
-    minSpend: 150000,
-    usageLimit: 200,
-    usedCount: 12,
-    startDate: "2026-03-01",
-    endDate: "2026-06-01",
-    status: "Active",
-  },
-];
-
 export default function VoucherManagement() {
-  const [vouchers, setVouchers] = useState<Voucher[]>(INITIAL_VOUCHERS);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newVoucher, setNewVoucher] = useState<Partial<Voucher>>({
@@ -106,6 +65,40 @@ export default function VoucherManagement() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    fetchVouchers();
+  }, []);
+
+  const fetchVouchers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("http://localhost:4040/api/vouchers");
+      if (response.ok) {
+        const result = await response.json();
+        // Map backend Voucher to frontend Voucher interface
+        const mappedVouchers: Voucher[] = (result.data || []).map((v: any) => ({
+          id: v.voucherId,
+          code: v.voucherCode,
+          type: v.voucherType.toLowerCase().includes("vận chuyển") ? "shipping" : 
+                v.voucherType.toLowerCase().includes("thức uống") ? "drink" : "food",
+          discountType: "Fixed", // Default as per initial schema assumption
+          value: v.discountValue,
+          minSpend: v.minOrderValue,
+          usageLimit: v.maxUsage,
+          usedCount: 0, // Not provided by current simple API
+          startDate: v.startDate,
+          endDate: v.endDate,
+          status: v.isActive ? "Active" : "Expired",
+        }));
+        setVouchers(mappedVouchers);
+      }
+    } catch (error) {
+      console.error("Failed to fetch vouchers:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredVouchers = vouchers.filter((v) =>
     v.code.toLowerCase().includes(searchTerm.toLowerCase()),

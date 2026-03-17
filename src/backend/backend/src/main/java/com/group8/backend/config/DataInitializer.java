@@ -28,15 +28,39 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        // Check if data already exists
-        if (userRepository.count() > 0) {
-            System.out.println("📊 Database already has data. Skipping initialization.");
-            return;
+        // Check for users
+        if (userRepository.count() == 0) {
+            seedUserData();
+        }
+
+        // Check for categories (Independent of users)
+        long catCount = menuCategoryRepository.count();
+        System.out.println("📊 Initializer: Found " + catCount + " categories in DB.");
+        if (catCount == 0) {
+            seedCategoryData();
+        } else {
+            System.out.println("ℹ️ Skipping category seeding as " + catCount + " already exist.");
         }
 
         System.out.println("\n====================================");
-        System.out.println("🔄 Initializing sample data...");
+        System.out.println("✨ Data initialization check completed!");
         System.out.println("====================================\n");
+    }
+
+    private void seedCategoryData() {
+        System.out.println("🌱 Seeding default categories...");
+        String[] catNames = {"Đồ ăn", "Thức uống", "Bánh kem", "Tráng miệng", "Đồ chay", "Pizza/Burger", "Món lẩu", "Sushi", "Mì", "Phở", "Bún", "Cơm hộp"};
+        for (int i = 0; i < catNames.length; i++) {
+            MenuCategory cat = new MenuCategory();
+            cat.setCategoryId("CAT" + String.format("%03d", i + 1));
+            cat.setCategoryName(catNames[i]);
+            menuCategoryRepository.save(cat);
+        }
+        System.out.println("✅ Seeded " + catNames.length + " categories.");
+    }
+
+    private void seedUserData() {
+        System.out.println("🔄 Initializing sample user/merchant data...");
 
         // 1. Create User - Customer
         User customer = new User();
@@ -77,7 +101,6 @@ public class DataInitializer implements CommandLineRunner {
         merchant.setActiveStatus(true);
         merchant.setShopType("Pizza");
         merchant.setRating((byte) 5);
-        merchant.setMenuCategories(new HashSet<>());
         merchant.setOptionToppings(new HashSet<>());
         merchant.setCarts(new HashSet<>());
         merchant.setOrders(new HashSet<>());
@@ -87,8 +110,7 @@ public class DataInitializer implements CommandLineRunner {
         // 4. Create Menu Category
         MenuCategory category = new MenuCategory();
         category.setCategoryId("CAT001");
-        category.setMerchant(merchant);
-        category.setNameCategory("Pizzas");
+        category.setCategoryName("Pizzas");
         category.setFoodItems(new HashSet<>());
         menuCategoryRepository.save(category);
         System.out.println("✅ Created menu category: CAT001 (Pizzas)");
@@ -104,7 +126,7 @@ public class DataInitializer implements CommandLineRunner {
         food1.setSalePrice(120000L);
         food1.setFoodImage("https://example.com/margherita.jpg");
         food1.setDescriptions("Classic tomato, mozzarella and basil pizza");
-        food1.setFoodStatus(true);
+        food1.setFoodStatus(1);
         food1.setOptionToppings(new HashSet<>());
         food1.setCartItems(new HashSet<>());
         food1.setOrderDetails(new HashSet<>());
@@ -121,7 +143,7 @@ public class DataInitializer implements CommandLineRunner {
         food2.setSalePrice(150000L);
         food2.setFoodImage("https://example.com/pepperoni.jpg");
         food2.setDescriptions("Delicious pepperoni with extra cheese");
-        food2.setFoodStatus(true);
+        food2.setFoodStatus(1);
         food2.setOptionToppings(new HashSet<>());
         food2.setCartItems(new HashSet<>());
         food2.setOrderDetails(new HashSet<>());
@@ -138,7 +160,7 @@ public class DataInitializer implements CommandLineRunner {
         food3.setSalePrice(110000L);
         food3.setFoodImage("https://example.com/vegetarian.jpg");
         food3.setDescriptions("Fresh vegetables and herbs on thin crust");
-        food3.setFoodStatus(true);
+        food3.setFoodStatus(1);
         food3.setOptionToppings(new HashSet<>());
         food3.setCartItems(new HashSet<>());
         food3.setOrderDetails(new HashSet<>());

@@ -3,21 +3,30 @@ package com.group8.backend.service.impl;
 import com.group8.backend.dto.UserLoginDTO;
 import com.group8.backend.dto.UserRegistrationDTO;
 import com.group8.backend.dto.UserResponseDTO;
+import com.group8.backend.model.Role;
 import com.group8.backend.model.User;
+import com.group8.backend.repository.RoleRepository;
 import com.group8.backend.repository.UserRepository;
 import com.group8.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
+@Transactional
 public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
@@ -52,6 +61,13 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Invalid birth date format. Use yyyy-MM-dd");
         }
 
+        // Set default role: RO00001 (Người dùng)
+        Role userRole = roleRepository.findById("RO00001")
+                .orElseThrow(() -> new RuntimeException("Default User Role (RO00001) not found in DB"));
+        Set<Role> roles = new HashSet<>();
+        roles.add(userRole);
+        user.setRoles(roles);
+
         User savedUser = userRepository.save(user);
         return convertToResponseDTO(savedUser);
     }
@@ -71,7 +87,25 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = userOpt.get();
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
+        String storedPassword = user.getPassword() != null ? user.getPassword().trim() : "";
+        String inputPassword = dto.getPassword() != null ? dto.getPassword().trim() : "";
+        
+        boolean matches = false;
+        try {
+            matches = passwordEncoder.matches(inputPassword, storedPassword);
+        } catch (Exception e) {
+            // Ignore bcrypt errors if it's plain text
+        }
+        
+        // Fallback for plain-text passwords
+        if (!matches && inputPassword.equals(storedPassword)) {
+            matches = true;
+        }
+
+        if (!matches) {
+            System.out.println("DEBUG: Login failed for " + dto.getEmail());
+            System.out.println("DEBUG: Stored length: " + storedPassword.length());
+            System.out.println("DEBUG: Input length: " + inputPassword.length());
             throw new RuntimeException("Invalid password");
         }
 
@@ -110,6 +144,13 @@ public class UserServiceImpl implements UserService {
         return convertToResponseDTO(updatedUser);
     }
 
+    @Override
+    public java.util.List<UserResponseDTO> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::convertToResponseDTO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     private UserResponseDTO convertToResponseDTO(User user) {
         UserResponseDTO dto = new UserResponseDTO();
         dto.setUserId(user.getUserId());
@@ -117,7 +158,12 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setAddressDelivery(user.getAddressDelivery());
-        dto.setShopeeCoins(user.getShopeeCoins().intValue());
+        dto.setShopeeCoins(user.getShopeeCoins() != null ? user.getShopeeCoins().intValue() : 0);
+        if (user.getRoles() != null) {
+            dto.setRoles(user.getRoles().stream()
+                .map(role -> role.getRoleName())
+                .collect(java.util.stream.Collectors.toList()));
+        }
         return dto;
     }
 }

@@ -10,27 +10,24 @@ import lombok.*;
 @NoArgsConstructor @AllArgsConstructor
 public class OrderDetailTopping {
     @Id
-    @Column(name = "OdToppingId", length = 10)
-    private String odToppingId;
+    @Column(name = "OrderToppingId", length = 10)
+    private String orderToppingId;
 
     @ManyToOne
-    @JoinColumn(name = "OptionToppingId", nullable = false)
+    @JoinColumn(name = "ToppingId", nullable = false)
     private OptionTopping optionTopping;
 
     @ManyToOne
-    @JoinColumn(name = "OrderDetailId", nullable = false)
+    @JoinColumn(name = "OrderItemId", nullable = false)
     private OrderDetail orderDetail;
 
-    @Column(name = "ToppingName", length = 100, nullable = false)
-    private String toppingName;
-
-    @Column(name = "ToppingPrice", nullable = false)
-    private Long toppingPrice;
+    @Column(name = "Price", nullable = false)
+    private Long price;
 
     @PrePersist
     public void generateId() {
-        if (this.odToppingId == null) {
-            this.odToppingId = com.group8.backend.config.IDGenerator.generateID();
+        if (this.orderToppingId == null) {
+            this.orderToppingId = com.group8.backend.config.IDGenerator.generateID();
         }
     }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import {
   IdCard,
   Image as ImageIcon,
 } from "lucide-react";
+import { submitMerchantApplication, handleApiError } from "@/lib/apiClient";
+import { useAuth } from "@/context/AuthContext";
 
 const FileUploadZone = ({
   label,
@@ -72,9 +74,6 @@ const FileUploadZone = ({
 
 export default function MerchantRegisterPage() {
   const [formData, setFormData] = useState({
-    fullName: "",
-    phoneNumber: "",
-    email: "",
     storeName: "",
     address: "",
     foodType: "",
@@ -90,6 +89,13 @@ export default function MerchantRegisterPage() {
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setUserId(localStorage.getItem("userId"));
+    }
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -107,15 +113,29 @@ export default function MerchantRegisterPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) {
+      alert("Vui lòng đăng nhập để gửi đơn đăng ký!");
+      return;
+    }
+
     setLoading(true);
-    // Simulate API call Delay
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await submitMerchantApplication({
+        user: { userId: userId },
+        storeName: formData.storeName,
+        storeAddress: formData.address,
+        shopType: formData.foodType || "Đồ ăn",
+      });
       setSuccess(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 2000);
+    } catch (error: any) {
+      const apiErr = handleApiError(error);
+      alert(apiErr.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -186,83 +206,14 @@ export default function MerchantRegisterPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-12">
-                {/* Section 1: Thông tin chủ quán */}
-                <section>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-[#ee4d2d]">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800">
-                      1. Thông tin chủ quán
-                    </h3>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-0 sm:pl-12">
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                        Họ và tên
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          name="fullName"
-                          required
-                          value={formData.fullName}
-                          onChange={handleInputChange}
-                          placeholder="Nhập họ và tên chủ quán"
-                          className="h-14 pl-12 rounded-xl border-gray-200 focus:border-[#ee4d2d] bg-gray-50/50 focus:bg-white text-base"
-                        />
-                        <User className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                        Số điện thoại
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          name="phoneNumber"
-                          type="tel"
-                          required
-                          value={formData.phoneNumber}
-                          onChange={handleInputChange}
-                          placeholder="Ví dụ: 09xx xxx xxx"
-                          className="h-14 pl-12 rounded-xl border-gray-200 focus:border-[#ee4d2d] bg-gray-50/50 focus:bg-white text-base"
-                        />
-                        <Phone className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1">
-                        Email
-                      </Label>
-                      <div className="relative">
-                        <Input
-                          name="email"
-                          type="email"
-                          required
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          placeholder="email@example.com"
-                          className="h-14 pl-12 rounded-xl border-gray-200 focus:border-[#ee4d2d] bg-gray-50/50 focus:bg-white text-base"
-                        />
-                        <Mail className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <div className="h-px bg-gray-100 w-full" />
-
-                {/* Section 2: Thông tin cửa hàng */}
+                {/* Section 1: Thông tin cửa hàng */}
                 <section>
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-[#ee4d2d]">
                       <Store className="w-5 h-5" />
                     </div>
                     <h3 className="text-xl font-bold text-gray-800">
-                      2. Thông tin cửa hàng
+                      1. Thông tin cửa hàng
                     </h3>
                   </div>
 
@@ -369,14 +320,14 @@ export default function MerchantRegisterPage() {
 
                 <div className="h-px bg-gray-100 w-full" />
 
-                {/* Section 3: Giấy tờ & Hình ảnh */}
+                {/* Section 2: Giấy tờ & Hình ảnh */}
                 <section>
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center text-[#ee4d2d]">
                       <Camera className="w-5 h-5" />
                     </div>
                     <h3 className="text-xl font-bold text-gray-800">
-                      3. Giấy tờ & Hình ảnh
+                      2. Giấy tờ & Hình ảnh
                     </h3>
                   </div>
 

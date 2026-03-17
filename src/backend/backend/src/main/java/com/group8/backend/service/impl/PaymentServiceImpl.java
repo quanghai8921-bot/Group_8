@@ -34,7 +34,7 @@ public class PaymentServiceImpl implements PaymentService {
         paymentRepository.save(p);
 
         // Optionally update order status to Paid/Completed (business rule)
-        order.setOrderStatus(true); // Assuming true means completed
+        order.setOrderStatus(2); // Paid/Accepted
         orderRepository.save(order);
     }
 

@@ -23,4 +23,9 @@ public class PlaceOrderDTO {
 
     @NotBlank
     private String deliveryAddress;
+
+    private String contactPhone;
+    private String customerNote;
+    private Boolean shopeeXuUsed;
+    private String paymentMethod;
 }

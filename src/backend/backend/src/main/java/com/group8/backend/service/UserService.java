@@ -9,4 +9,5 @@ public interface UserService {
     UserResponseDTO login(UserLoginDTO dto);
     UserResponseDTO getUserById(String userId);
     UserResponseDTO updateUser(String userId, UserRegistrationDTO dto);
+    java.util.List<UserResponseDTO> getAllUsers();
 }

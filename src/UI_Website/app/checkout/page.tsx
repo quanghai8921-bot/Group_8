@@ -20,7 +20,19 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getMockUserCoins } from "@/lib/apiClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  getActiveVouchersByMerchant,
+  getMockUserCoins,
+  SimpleVoucher,
+} from "@/lib/apiClient";
 
 export default function CheckoutPage() {
   const {
@@ -34,12 +46,15 @@ export default function CheckoutPage() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [contactPhoneNumber, setContactPhoneNumber] = useState("");
   const [customerNote, setCustomerNote] = useState("");
-  const [voucherCode, setVoucherCode] = useState("");
+  const [selectedVoucher, setSelectedVoucher] = useState<SimpleVoucher | null>(null);
+  const [availableVouchers, setAvailableVouchers] = useState<SimpleVoucher[]>([]);
+  const [isVoucherDialogOpen, setIsVoucherDialogOpen] = useState(false);
   const [shouldUseShopeeXu, setShouldUseShopeeXu] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("cash");
 
   const [wasOrderSuccessful, setWasOrderSuccessful] = useState(false);
   const [generatedOrderCode, setGeneratedOrderCode] = useState("");
+  const [deployedOrderId, setDeployedOrderId] = useState<string>("");
   const [userCoins, setUserCoins] = useState<any>(null);
 
   useEffect(function onPageMount() {
@@ -48,14 +63,31 @@ export default function CheckoutPage() {
 
     // Fetch mock user coins
     const userId = localStorage.getItem("userId") || "user123";
-    getMockUserCoins(userId).then(setUserCoins).catch(err => console.error("Error fetching coins:", err));
-  }, []);
+    getMockUserCoins(userId).then(setUserCoins).catch((err: any) => console.error("Error fetching coins:", err));
+
+    // Fetch merchant vouchers
+    const merchantId = itemsToPurchase[0]?.merchantId;
+    if (merchantId) {
+      getActiveVouchersByMerchant(merchantId)
+        .then(setAvailableVouchers)
+        .catch(err => console.error("Error fetching vouchers:", err));
+    }
+  }, [itemsToPurchase]);
 
   const fixedShippingFee = 15000;
   const discountableAmount = userCoins?.MaxRedeemablePerOrder || 0;
   const shopeeXuDiscount = shouldUseShopeeXu ? discountableAmount : 0;
+
+  // Calculate Voucher Discount
+  let voucherDiscount = 0;
+  if (selectedVoucher) {
+    if (totalGoodsAmount >= selectedVoucher.minOrderValue) {
+      voucherDiscount = selectedVoucher.discountValue;
+    }
+  }
+
   const finalBillAmount =
-    totalGoodsAmount + fixedShippingFee - shopeeXuDiscount;
+    totalGoodsAmount + fixedShippingFee - shopeeXuDiscount - voucherDiscount;
 
   function formatVNDPrice(amount: number) {
     return new Intl.NumberFormat("vi-VN", {
@@ -64,7 +96,7 @@ export default function CheckoutPage() {
     }).format(amount);
   }
 
-  function submitOrderToStore() {
+  async function submitOrderToStore() {
     if (!deliveryAddress || !contactPhoneNumber) {
       alert(
         "Vui lòng nhập đầy đủ địa chỉ và số điện thoại để chúng tôi giao hàng!",
@@ -72,17 +104,58 @@ export default function CheckoutPage() {
       return;
     }
 
-    setWasOrderSuccessful(true);
-    emptyCartAfterSuccess();
-  }
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      alert("Bạn cần đăng nhập để đặt hàng!");
+      pageRouter.push("/login");
+      return;
+    }
 
-  function handleVoucherApplication() {
-    if (voucherCode) {
-      alert("Mã voucher '" + voucherCode + "' đã được áp dụng thành công!");
-    } else {
-      alert("Vui lòng nhập mã voucher.");
+    // Since we can have items from multiple merchants in the general cart,
+    // but the backend placeOrder currently assumes a single merchant per order (based on PlaceOrderDTO),
+    // we should group by merchant or just take the first one if we assume single merchant checkout for now.
+    // However, looking at the code, it seems itemsToPurchase is likely filtered or users usually buy from one store.
+    const merchantId = itemsToPurchase[0]?.merchantId;
+
+    if (!merchantId) {
+      alert("Không tìm thấy thông tin cửa hàng!");
+      return;
+    }
+
+    try {
+      const orderData = {
+        userId,
+        merchantId,
+        deliveryAddress,
+        contactPhone: contactPhoneNumber,
+        customerNote,
+        voucherCode: selectedVoucher?.voucherCode || null,
+        shopeeXuUsed: shopeeXuDiscount > 0,
+        shippingFee: fixedShippingFee,
+        paymentMethod: selectedPaymentMethod,
+      };
+
+      const result = await (await import("@/lib/apiClient")).placeOrder(orderData);
+      
+      if (result) {
+        setWasOrderSuccessful(true);
+        setDeployedOrderId(result.orderId);
+        await emptyCartAfterSuccess();
+      }
+    } catch (error: any) {
+      const apiErr = (await import("@/lib/apiClient")).handleApiError(error);
+      alert("Đặt hàng thất bại: " + apiErr.message);
     }
   }
+
+  const handleSelectVoucher = (voucher: SimpleVoucher) => {
+    if (totalGoodsAmount < voucher.minOrderValue) {
+      alert(`Đơn hàng tối thiểu ${formatVNDPrice(voucher.minOrderValue)} mới có thể dùng voucher này!`);
+      return;
+    }
+    setSelectedVoucher(voucher);
+    setIsVoucherDialogOpen(false);
+  };
 
   if (wasOrderSuccessful === true) {
     return (
@@ -111,7 +184,7 @@ export default function CheckoutPage() {
           <Button
             className="flex-1 bg-[#ee4d2d] hover:bg-[#d73211] text-white py-8 text-xl font-bold rounded-2xl shadow-xl shadow-orange-100 transition-all active:scale-95 flex items-center justify-center gap-2"
             onClick={function () {
-              pageRouter.push("/order-status");
+              pageRouter.push(`/order-status?id=${deployedOrderId}`);
             }}
           >
             Theo dõi đơn hàng
@@ -222,10 +295,10 @@ export default function CheckoutPage() {
               <div className="divide-y divide-gray-50 px-4 md:px-0">
                 {itemsToPurchase.map(function (item) {
                   const toppings = item.selectedToppings || [];
-                  const itemKey = item.FoodId + (toppings.map((t: any) => t.ToppingName).sort().join(",") || "");
-                  const basePrice = Number(item.Price) || 0;
-                  const toppingPrice = toppings.reduce((sum: number, t: any) => sum + (Number(t.Price) || 0), 0);
-                  const itemTotal = (basePrice + toppingPrice) * (Number(item.Quantity) || 0);
+                  const itemKey = item.foodId + (toppings.map((t: any) => t.toppingName).sort().join(",") || "");
+                  const basePrice = Number(item.price) || 0;
+                  const toppingPrice = toppings.reduce((sum: number, t: any) => sum + (Number(t.price) || 0), 0);
+                  const itemTotal = (basePrice + toppingPrice) * (Number(item.quantity) || 0);
 
                   return (
                     <div
@@ -234,17 +307,17 @@ export default function CheckoutPage() {
                     >
                       <div className="flex items-center gap-4 flex-1 w-full">
                         <img
-                          src={item.FoodImage}
-                          alt={item.FoodName}
+                          src={item.foodImage || "/placeholder-food.jpg"}
+                          alt={item.foodName}
                           className="w-16 h-16 object-cover rounded-xl border border-gray-100 shadow-sm"
                         />
                         <div className="flex-1">
                           <p className="font-bold text-gray-800 text-base">
-                            {item.FoodName}
+                            {item.foodName}
                           </p>
                           {toppings.length > 0 && (
                             <p className="text-[10px] text-gray-400 font-medium">
-                              + {toppings.map((t: any) => t.ToppingName).join(", ")}
+                              + {toppings.map((t: any) => t.toppingName).join(", ")}
                             </p>
                           )}
                           <p className="text-[10px] text-blue-500 font-black bg-blue-50 inline-block px-2 py-0.5 rounded-full mt-1 border border-blue-100 uppercase tracking-tighter">
@@ -257,7 +330,7 @@ export default function CheckoutPage() {
                           {formatVNDPrice(basePrice + toppingPrice)}
                         </p>
                         <p className="md:w-16 text-center font-bold text-gray-900">
-                          x{item.Quantity}
+                          x{item.quantity}
                         </p>
                         <p className="md:w-24 text-right font-black text-[#ee4d2d] text-base">
                           {formatVNDPrice(itemTotal)}
@@ -350,17 +423,63 @@ export default function CheckoutPage() {
                     <Ticket className="w-5 h-5 text-orange-400" />
                     <span>Voucher:</span>
                   </div>
-                  {voucherCode ? (
-                    <span className="text-blue-600">{voucherCode}</span>
+                  {selectedVoucher ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-blue-600 font-black">{selectedVoucher.voucherCode}</span>
+                      <button 
+                         className="text-gray-300 hover:text-red-500 text-xs"
+                         onClick={() => setSelectedVoucher(null)}
+                      >
+                        (Gỡ)
+                      </button>
+                    </div>
                   ) : (
-                    <button
-                      className="text-blue-500 text-xs hover:underline"
-                      onClick={function () {
-                        setVoucherCode("DUMMYFREE");
-                      }}
-                    >
-                      Chọn voucher
-                    </button>
+                    <Dialog open={isVoucherDialogOpen} onOpenChange={setIsVoucherDialogOpen}>
+                      <DialogTrigger asChild>
+                        <button className="text-blue-500 text-xs hover:underline flex items-center gap-1 font-bold">
+                          Chọn voucher <ChevronRight className="w-3 h-3" />
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[450px] rounded-3xl">
+                        <DialogHeader>
+                          <DialogTitle className="text-2xl font-black text-gray-900">Chọn Voucher Cửa Hàng</DialogTitle>
+                          <DialogDescription className="text-gray-400 font-bold uppercase text-[10px] tracking-widest mt-1">
+                            Chọn 1 voucher ưu ái nhất cho bữa ăn của bạn
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-6 space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                          {availableVouchers.length === 0 ? (
+                            <div className="text-center py-10 italic text-gray-400">
+                              Quán hiện chưa có voucher nào khả dụng.
+                            </div>
+                          ) : (
+                            availableVouchers.map(v => (
+                              <div 
+                                key={v.voucherId}
+                                className={`group p-5 border-2 rounded-2xl cursor-pointer transition-all hover:border-[#ee4d2d]/50 ${totalGoodsAmount < v.minOrderValue ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'bg-white hover:shadow-lg'}`}
+                                onClick={() => totalGoodsAmount >= v.minOrderValue && handleSelectVoucher(v)}
+                              >
+                                <div className="flex justify-between items-start mb-3">
+                                  <div>
+                                    <p className="font-black text-[#ee4d2d] text-lg uppercase tracking-wider">{v.voucherCode}</p>
+                                    <p className="text-xs font-bold text-gray-500">{v.voucherType === 'food' ? 'Giảm giá đồ ăn' : v.voucherType === 'drink' ? 'Giảm giá thức uống' : 'Giảm phí vận chuyển'}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="font-black text-gray-900 text-xl">-{formatVNDPrice(v.discountValue)}</p>
+                                  </div>
+                                </div>
+                                <div className="pt-3 border-t border-dashed border-gray-100 flex justify-between items-center">
+                                  <span className="text-[10px] font-bold text-gray-400">Đơn tối thiểu: {formatVNDPrice(v.minOrderValue)}</span>
+                                  {totalGoodsAmount < v.minOrderValue && (
+                                    <span className="text-[10px] font-black text-red-500">Chưa đủ điều kiện</span>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   )}
                 </div>
 
@@ -409,6 +528,17 @@ export default function CheckoutPage() {
                       </div>
                       <span className="text-[#ee4d2d] font-bold">
                         -{formatVNDPrice(discountableAmount)}
+                      </span>
+                    </div>
+                  )}
+                  {selectedVoucher && (
+                    <div className="flex justify-between text-gray-500 font-medium pt-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                      <div className="flex items-center gap-2">
+                        <Ticket className="w-4 h-4 text-blue-500" />
+                        <span>Giảm giá Voucher:</span>
+                      </div>
+                      <span className="text-[#ee4d2d] font-bold">
+                        -{formatVNDPrice(voucherDiscount)}
                       </span>
                     </div>
                   )}

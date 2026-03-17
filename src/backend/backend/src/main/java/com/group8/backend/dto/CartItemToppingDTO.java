@@ -6,6 +6,6 @@ import lombok.*;
 @NoArgsConstructor @AllArgsConstructor
 public class CartItemToppingDTO {
     private String toppingId;
-    private String nameOption;
-    private Long surcharge;
+    private String toppingName;
+    private Long price;
 }

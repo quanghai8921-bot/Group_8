@@ -95,12 +95,21 @@ export default function Navbar() {
                 Tài khoản
               </Button>
               <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden transform origin-top-right group-hover:scale-100 scale-95">
-                <Link
-                  href="/register/merchant"
-                  className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#ee4d2d] transition-colors border-b border-gray-50"
-                >
-                  Đăng ký làm chủ quán
-                </Link>
+                {auth.isMerchant ? (
+                  <Link
+                    href="/merchant"
+                    className="block px-4 py-3 text-sm font-bold text-[#ee4d2d] hover:bg-orange-50 transition-colors border-b border-gray-50"
+                  >
+                    Quản lý cửa hàng
+                  </Link>
+                ) : (
+                  <Link
+                    href="/register/merchant"
+                    className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#ee4d2d] transition-colors border-b border-gray-50"
+                  >
+                    Đăng ký làm chủ quán
+                  </Link>
+                )}
                 <Link
                   href="/orders"
                   className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-[#ee4d2d] transition-colors border-b border-gray-50"

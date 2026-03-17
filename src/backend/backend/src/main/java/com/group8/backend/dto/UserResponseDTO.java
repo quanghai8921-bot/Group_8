@@ -11,4 +11,5 @@ public class UserResponseDTO {
     private String phoneNumber;
     private String addressDelivery;
     private Integer shopeeCoins;
+    private java.util.List<String> roles;
 }

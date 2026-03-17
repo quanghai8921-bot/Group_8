@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface DriverRepository extends JpaRepository<Driver, String> {
     Optional<Driver> findByUser_UserId(String userId);
+    Optional<Driver> findFirstByIsOnlineTrue();
 }

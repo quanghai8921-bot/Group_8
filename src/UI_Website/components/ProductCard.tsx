@@ -16,10 +16,10 @@ import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { Store, CreditCard, ShoppingCart } from "lucide-react";
 import ProductDetailModal from "./ProductDetailModal";
-import { Product } from "@/lib/data";
+import { Food } from "@/lib/apiClient";
 
 interface ProductProps {
-  product: Product;
+  product: Food;
 }
 
 /**
@@ -38,67 +38,65 @@ export default function ProductCard({ product }: ProductProps) {
     setQuantity(Number(e.target.value));
   }
 
-  function handleAddToCart(e: React.MouseEvent) {
+  async function handleAddToCart(e: React.MouseEvent) {
     e.stopPropagation();
     if (!auth.isAuthenticated) {
       router.push("/login");
       return;
     }
 
-    cart.addToCart(product, quantity);
+    await cart.addToCart(product, quantity);
     alert("Đã thêm vào giỏ hàng thành công!");
   }
 
-  function handleBuyNow(e: React.MouseEvent) {
+  async function handleBuyNow(e: React.MouseEvent) {
     e.stopPropagation();
     if (!auth.isAuthenticated) {
       router.push("/login");
       return;
     }
 
-    cart.addToCart(product, quantity);
+    await cart.addToCart(product, quantity);
     router.push("/cart");
   }
 
-  const displayPrice = (product.SalePrice || product.OriginalPrice || 0).toLocaleString("vi-VN") + "đ";
+  const displayPrice = (product.salePrice || product.originalPrice || 0).toLocaleString("vi-VN") + "đ";
 
   return (
     <>
       <Card
-        className="w-full max-w-sm hover:shadow-2xl transition-all duration-300 border-none bg-white rounded-3xl overflow-hidden group cursor-pointer"
+        className={`w-full max-w-sm hover:shadow-2xl transition-all duration-300 border-none bg-white rounded-3xl overflow-hidden group cursor-pointer !p-0 !pt-0 !gap-0 ${product.foodStatus === 0 ? "opacity-75" : ""}`}
         onClick={() => setIsModalOpen(true)}
       >
-        <CardHeader className="p-0 relative">
-          <div className="overflow-hidden h-48">
-            <img
-              src={product.FoodImage}
-              alt={product.FoodName}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
-            {product.discount && (
-              <div className="absolute top-4 left-4 bg-[#ee4d2d] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
-                {product.discount}
-              </div>
-            )}
-          </div>
-        </CardHeader>
+        <div className="relative overflow-hidden h-56 w-full shrink-0">
+          <img
+            src={product.foodImage}
+            alt={product.foodName}
+            className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${product.foodStatus === 0 ? "grayscale" : ""}`}
+          />
+          {product.foodStatus === 0 && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <span className="bg-white/90 text-gray-900 font-black text-xs px-4 py-2 rounded-full uppercase tracking-widest shadow-lg">Hết hàng</span>
+            </div>
+          )}
+        </div>
 
         <CardContent className="p-4 flex flex-col gap-1">
           <Link
-            href={`/store/${product.MerchantId}`}
+            href={`/store/${product.merchantId}`}
             className="flex items-center gap-1.5 text-gray-400 font-bold text-[10px] uppercase tracking-widest hover:text-[#ee4d2d] transition-colors"
             onClick={(e) => e.stopPropagation()}
           >
             <Store className="w-3 h-3" />
-            {product.merchantName || "Cửa hàng"}
+            {product.storeName || "Cửa hàng"}
           </Link>
 
           <CardTitle className="text-lg font-black text-gray-900 line-clamp-1 group-hover:text-[#ee4d2d] transition-colors">
-            {product.FoodName}
+            {product.foodName}
           </CardTitle>
 
           <p className="text-gray-400 text-xs line-clamp-2 font-medium mb-2 leading-relaxed">
-            {product.Descriptions}
+            {product.descriptions}
           </p>
 
           <div className="flex items-center justify-between mt-auto">
@@ -125,13 +123,15 @@ export default function ProductCard({ product }: ProductProps) {
         <CardFooter className="p-4 pt-0 flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 h-9 rounded-xl border-gray-100 text-gray-600 font-bold text-xs hover:bg-gray-50 transition-all active:scale-95"
+            disabled={product.foodStatus === 0}
+            className="flex-1 h-9 rounded-xl border-gray-100 text-gray-600 font-bold text-xs hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
             onClick={handleAddToCart}
           >
             <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />+ Giỏ
           </Button>
           <Button
-            className="flex-1 h-9 rounded-xl bg-[#ee4d2d] hover:bg-[#d73211] text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+            disabled={product.foodStatus === 0}
+            className="flex-1 h-9 rounded-xl bg-[#ee4d2d] hover:bg-[#d73211] text-white font-black text-xs uppercase tracking-widest transition-all active:scale-95 shadow-sm disabled:bg-gray-200 disabled:text-gray-400"
             onClick={handleBuyNow}
           >
             Mua

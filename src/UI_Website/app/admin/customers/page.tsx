@@ -1,21 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import apiClient from "@/lib/apiClient";
 import {
   Search,
-  MoreVertical,
   Mail,
   Phone,
-  Ban,
   CheckCircle2,
-  Trash2,
   Shield,
   ShoppingBag,
-  X,
-  Store,
-  CreditCard,
 } from "lucide-react";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
@@ -27,93 +21,48 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 interface User {
-  id: string;
-  name: string;
+  userId: string;
+  fullName: string;
   email: string;
-  role: ("Merchant" | "User")[];
-  status: "Active" | "Locked";
-  joinDate: string;
-  avatar?: string;
-  phone?: string;
-  merchantId?: string;
-  orderCount: number;
+  phoneNumber: string;
+  addressDelivery: string;
+  shopeeCoins: number;
+  roles: string[];
 }
 
-const INITIAL_USERS: User[] = [
-  {
-    id: "1",
-    name: "Nguyễn Văn A",
-    email: "vana@gmail.com",
-    role: ["User"],
-    status: "Active",
-    joinDate: "2024-01-15",
-    phone: "0912345678",
-    orderCount: 5,
-  },
-  {
-    id: "2",
-    name: "Trần Thị B",
-    email: "thib@merchant.com",
-    role: ["User", "Merchant"],
-    status: "Active",
-    joinDate: "2024-02-01",
-    phone: "0987654321",
-    merchantId: "M001",
-    orderCount: 0,
-  },
-  {
-    id: "3",
-    name: "Lê Văn C",
-    email: "vanc@driver.com",
-    role: ["User"],
-    status: "Active",
-    joinDate: "2024-02-10",
-    phone: "0901234567",
-    orderCount: 0,
-  },
-  {
-    id: "4",
-    name: "Phạm Minh D",
-    email: "minhd@gmail.com",
-    role: ["User"],
-    status: "Locked",
-    joinDate: "2024-03-01",
-    phone: "0933445566",
-    orderCount: 12,
-  },
-  {
-    id: "5",
-    name: "Hoàng Anh E",
-    email: "anhe@merchant.com",
-    role: ["User", "Merchant"],
-    status: "Active",
-    joinDate: "2024-03-05",
-    phone: "0944556677",
-    merchantId: "M002",
-    orderCount: 3,
-  },
-];
-
 export default function CustomersManagement() {
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await apiClient.get('/users');
+        if (response.data && response.data.success) {
+          setUsers(response.data.data);
+        } else if (Array.isArray(response.data)) {
+           // Fallback if the map isn't returned
+           setUsers(response.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch users", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.phone && user.phone.includes(searchTerm)),
+      (user.fullName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.phoneNumber || "").includes(searchTerm),
   );
 
   const totalPages = Math.ceil(filteredUsers.length / ITEMS_PER_PAGE);
@@ -123,24 +72,15 @@ export default function CustomersManagement() {
   );
 
   const toggleUserStatus = (id: string) => {
-    setUsers(
-      users.map((user) => {
-        if (user.id === id) {
-          return {
-            ...user,
-            status: user.status === "Active" ? "Locked" : "Active",
-          };
-        }
-        return user;
-      }),
-    );
+    // Backend functionality for locking users might need to be implemented later
+    alert("Chức năng khóa tài khoản đang được phát triển trên backend.");
   };
 
-  const deleteUser = (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
-      setUsers(users.filter((user) => user.id !== id));
-    }
-  };
+  if (isLoading) return (
+    <div className="p-8 text-center bg-white rounded-3xl animate-pulse italic text-gray-400">
+      Đang tải danh sách người dùng...
+    </div>
+  );
 
   return (
     <div className="space-y-8 font-sans">
@@ -150,7 +90,7 @@ export default function CustomersManagement() {
             Quản lý Khách hàng
           </h3>
           <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-            Quản lý tài khoản và phân quyền người dùng
+            Quản lý tài khoản và thông tin người dùng
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -190,20 +130,20 @@ export default function CustomersManagement() {
           <tbody className="divide-y divide-gray-50">
             {paginatedUsers.map((user) => (
               <tr
-                key={user.id}
+                key={user.userId}
                 className="hover:bg-gray-50 transition-colors group"
               >
                 <td className="px-6 py-5">
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">
-                      {user.name.charAt(0)}
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 uppercase">
+                      {(user.fullName || "U").charAt(0)}
                     </div>
                     <div>
                       <p className="font-bold text-gray-900 text-sm">
-                        {user.name}
+                        {user.fullName || "N/A"}
                       </p>
                       <p className="text-xs text-gray-400 font-medium italic">
-                        #{user.id}
+                        #{user.userId}
                       </p>
                     </div>
                   </div>
@@ -216,42 +156,23 @@ export default function CustomersManagement() {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
                       <Phone className="h-3 w-3" />
-                      <span>{user.phone}</span>
+                      <span>{user.phoneNumber}</span>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-5 align-top">
                   <div className="flex flex-col items-start gap-1.5 max-w-[180px]">
-                    {user.role.map((roleName) => (
-                      <span
-                        key={roleName}
-                        className={`px-3 py-1 border text-[10px] font-bold rounded-md uppercase tracking-wider text-left ${
-                          roleName === "User"
-                            ? "bg-gray-50 text-gray-500 border-gray-200"
-                            : roleName === "Merchant"
-                              ? "bg-orange-50 text-orange-600 border-orange-200"
-                              : "bg-blue-50 text-blue-600 border-blue-200"
-                        }`}
-                      >
-                        {roleName}
+                    {(user.roles && user.roles.length > 0 ? user.roles : ["USER"]).map((role) => (
+                      <span key={role} className="px-3 py-1 border text-[10px] font-bold rounded-md uppercase tracking-wider text-left bg-gray-50 text-gray-500 border-gray-200">
+                        {role}
                       </span>
                     ))}
                   </div>
                 </td>
                 <td className="px-6 py-5">
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                      user.status === "Active"
-                        ? "bg-green-50 text-green-600"
-                        : "bg-red-50 text-red-600"
-                    }`}
-                  >
-                    {user.status === "Active" ? (
-                      <CheckCircle2 className="h-3 w-3" />
-                    ) : (
-                      <Ban className="h-3 w-3" />
-                    )}
-                    {user.status === "Active" ? "Hoạt động" : "Đã khóa"}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-50 text-green-600">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Hoạt động
                   </span>
                 </td>
                 <td className="px-6 py-5">
@@ -262,63 +183,29 @@ export default function CustomersManagement() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 hover:bg-blue-50 hover:text-blue-500 rounded-lg"
-                          title="Xem đơn hàng"
+                          title="Xem thông tin"
                         >
                           <ShoppingBag className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
-                          <DialogTitle>Đơn hàng của {user.name}</DialogTitle>
+                          <DialogTitle>Thông tin của {user.fullName}</DialogTitle>
                           <DialogDescription>
-                            Danh sách các đơn hàng gần đây của khách hàng này.
+                            Chi tiết tài khoản khách hàng.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="py-4 space-y-3">
-                          {user.orderCount > 0 ? (
-                            [...Array(Math.min(3, user.orderCount))].map(
-                              (_, idx) => (
-                                <div
-                                  key={idx}
-                                  className="p-3 border border-gray-100 rounded-xl space-y-1"
-                                >
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="font-bold">
-                                      Đơn hàng #ORD{2024 + idx}
-                                    </span>
-                                    <span className="text-green-500 font-bold">
-                                      45.000₫
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between items-center text-xs text-gray-400">
-                                    <span>20/02/2026</span>
-                                    <div className="flex items-center gap-1.5 text-blue-500 font-bold">
-                                      <CreditCard className="h-3 w-3" />
-                                      <span>
-                                        {idx % 2 === 0
-                                          ? "Ví SmartBite"
-                                          : "Tiền mặt"}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="flex justify-end pt-1">
-                                    <span className="px-2 py-0.5 bg-gray-100 rounded-full text-[10px] text-gray-400 font-bold uppercase">
-                                      Hoàn thành
-                                    </span>
-                                  </div>
-                                </div>
-                              ),
-                            )
-                          ) : (
-                            <div className="py-8 text-center text-gray-400 text-sm italic">
-                              Chưa có đơn hàng nào
-                            </div>
-                          )}
-                          {user.orderCount > 3 && (
-                            <p className="text-center text-xs text-gray-400">
-                              Và {user.orderCount - 3} đơn hàng khác...
-                            </p>
-                          )}
+                           <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-3">
+                              <div className="space-y-1">
+                                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Địa chỉ giao hàng</p>
+                                <p className="text-sm font-bold text-gray-700">{user.addressDelivery || "Chưa cập nhật"}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Shopee Coins</p>
+                                <p className="text-sm font-black text-orange-500">{user.shopeeCoins?.toLocaleString() || 0} xu</p>
+                              </div>
+                           </div>
                         </div>
                       </DialogContent>
                     </Dialog>
@@ -326,8 +213,8 @@ export default function CustomersManagement() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-9 px-4 rounded-xl text-gray-400 hover:text-blue-500 font-bold text-xs gap-2"
-                      onClick={() => toggleUserStatus(user.id)}
+                      className="h-9 px-4 rounded-xl text-gray-400 hover:text-red-500 font-bold text-xs gap-2"
+                      onClick={() => toggleUserStatus(user.userId)}
                     >
                       <Shield className="h-3.5 w-3.5" />
                       Khóa

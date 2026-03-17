@@ -1,8 +1,14 @@
 package com.group8.backend.service;
 
-import java.math.BigDecimal;
 import com.group8.backend.model.Voucher;
+import java.util.List;
 
 public interface VoucherService {
-    Voucher validateVoucherByCode(String code, BigDecimal orderAmount);
+    List<Voucher> getAllVouchers();
+    List<Voucher> getVouchersByMerchant(String merchantId);
+    List<Voucher> getActiveVouchersByMerchant(String merchantId);
+    Voucher getVoucherById(String voucherId);
+    Voucher createVoucher(Voucher voucher);
+    Voucher updateVoucher(String voucherId, Voucher voucher);
+    void deleteVoucher(String voucherId);
 }

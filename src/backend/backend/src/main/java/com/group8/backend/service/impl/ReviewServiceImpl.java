@@ -1,43 +1,32 @@
 package com.group8.backend.service.impl;
 
-import com.group8.backend.dto.ReviewDTO;
-import com.group8.backend.model.*;
-import com.group8.backend.repository.*;
+import com.group8.backend.model.Review;
+import com.group8.backend.repository.ReviewRepository;
 import com.group8.backend.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ReviewServiceImpl implements ReviewService {
 
     @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
     private ReviewRepository reviewRepository;
 
     @Override
-    @Transactional
-    public void submitReview(ReviewDTO dto) {
-        Order order = orderRepository.findById(dto.getOrderId()).orElseThrow(() -> new RuntimeException("Order not found"));
-        if (!order.getOrderStatus()) {
-            throw new RuntimeException("Order is not completed; cannot submit review");
-        }
-        Review r = new Review();
-        r.setReviewId(generateId());
-        r.setOrder(order);
-        r.setRating((byte) dto.getRating());
-        r.setComment(dto.getComment());
-        r.setReviewType("ORDER");
-        r.setCreatedAt(LocalDateTime.now());
-        reviewRepository.save(r);
+    public List<Review> getReviewsByMerchant(String merchantId) {
+        // Find all reviews by merchant ID via orders
+        return reviewRepository.findAll().stream()
+                .filter(r -> r.getOrder().getMerchant().getMerchantId().equals(merchantId))
+                .collect(Collectors.toList());
     }
 
-    private String generateId() {
-        return "REV" + UUID.randomUUID().toString().substring(0,8).toUpperCase();
+    @Override
+    public Review createReview(Review review) {
+        review.setCreatedAt(LocalDateTime.now());
+        return reviewRepository.save(review);
     }
 }

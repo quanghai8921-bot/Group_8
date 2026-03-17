@@ -68,6 +68,15 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> getAllUsers() {
+        java.util.List<UserResponseDTO> users = userService.getAllUsers();
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", users);
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{userId}")
     public ResponseEntity<Map<String, Object>> updateUser(@PathVariable String userId,
                                                            @Valid @RequestBody UserRegistrationDTO dto) {

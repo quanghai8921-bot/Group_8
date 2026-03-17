@@ -18,11 +18,11 @@ public class OptionTopping {
     @JoinColumn(name = "MerchantId", nullable = false)
     private Merchant merchant;
 
-    @Column(name = "NameOption", length = 50)
-    private String nameOption;
+    @Column(name = "ToppingName", length = 50, nullable = false)
+    private String toppingName;
 
-    @Column(name = "Surcharge")
-    private Long surcharge;
+    @Column(name = "Price")
+    private Long price;
 
     // Relationships
     @ManyToMany(mappedBy = "optionToppings")

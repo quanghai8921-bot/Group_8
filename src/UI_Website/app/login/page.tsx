@@ -32,59 +32,31 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      let response;
-
-      // Bypass login cho tài khoản demo (Bỏ qua API)
-      if (userEmail === "admin@admin.com" && userPassword === "admin123") {
-        response = {
-          userId: "dev-admin-id",
-          fullName: "Admin (Demo Account)",
-          role: "admin",
-          token: "dev-admin-token",
-        };
-        localStorage.setItem("authToken", response.token);
-      } else if (userEmail === "user@user.com" && userPassword === "user123") {
-        response = {
-          userId: "dev-user-id",
-          fullName: "User (Demo Account)",
-          role: "user",
-          token: "dev-user-token",
-        };
-        localStorage.setItem("authToken", response.token);
-      } else if (
-        userEmail === "chuquan@gmail.com" &&
-        userPassword === "chuquan123"
-      ) {
-        response = {
-          userId: "dev-merchant-id",
-          fullName: "Merchant (Demo Account)",
-          role: "merchant",
-          token: "dev-merchant-token",
-        };
-        localStorage.setItem("authToken", response.token);
-      } else {
-        response = await loginUser({
-          email: userEmail,
-          password: userPassword,
-        });
-      }
+      const response = await loginUser({
+        email: userEmail,
+        password: userPassword,
+      });
 
       // Store user info in localStorage
       localStorage.setItem("userId", response.userId);
       localStorage.setItem("userFullName", response.fullName);
-      localStorage.setItem("userRole", response.role);
+      
+      const roles = response.roles || [];
+      localStorage.setItem("userRoles", JSON.stringify(roles));
 
-      // Update auth context
+      // Determine redirect path and admin/merchant status strictly from DB roles
+      const lowerRoles = roles.map((r: string) => r.toLowerCase().trim());
+      const hasAdminRole = lowerRoles.some((r: string) => r.includes("admin") || r.includes("quản trị viên"));
+      const hasMerchantRole = lowerRoles.some((r: string) => r.includes("merchant") || r.includes("chủ quán"));
+
       let redirectPath = "/";
-      if (response.role === "admin") {
+      if (hasAdminRole) {
         redirectPath = "/admin";
-      } else if (response.role === "merchant") {
+      } else if (hasMerchantRole) {
         redirectPath = "/merchant";
       }
 
-      const isAdminOrMerchant =
-        response.role === "admin" || response.role === "merchant";
-      authenticationContext.login(redirectPath, isAdminOrMerchant);
+      authenticationContext.login(redirectPath, hasAdminRole || hasMerchantRole, roles);
 
       alert("Đăng nhập thành công!");
     } catch (err) {

@@ -23,6 +23,16 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    @GetMapping
+    public ResponseEntity<Map<String, Object>> getAllOrders() {
+        List<OrderResponseDTO> orders = orderService.getAllOrders();
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("data", orders);
+        response.put("count", orders.size());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> createOrder(@Valid @RequestBody OrderRequestDTO dto) {
         OrderResponseDTO order = orderService.createOrder(dto);
@@ -100,6 +110,24 @@ public class OrderController {
             response.put("success", false);
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
+    @PatchMapping("/{orderId}/status")
+    public ResponseEntity<Map<String, Object>> updateOrderStatus(@PathVariable String orderId, @RequestBody Map<String, Object> updates) {
+        try {
+            Object statusObj = updates.get("status");
+            Integer status = (statusObj instanceof Integer) ? (Integer) statusObj : Integer.valueOf(statusObj.toString());
+            OrderResponseDTO updated = orderService.updateOrderStatus(orderId, status);
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("data", updated);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
     }
 }

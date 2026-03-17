@@ -1,11 +1,12 @@
 package com.group8.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "MenuCategories")
+@Table(name = "Categories")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class MenuCategory {
@@ -13,14 +14,11 @@ public class MenuCategory {
     @Column(name = "CategoryId", length = 10)
     private String categoryId;
 
-    @ManyToOne
-    @JoinColumn(name = "MerchantId", nullable = false)
-    private Merchant merchant;
-
-    @Column(name = "NameCategory", length = 50, nullable = false)
-    private String nameCategory;
+    @Column(name = "CategoryName", length = 50, nullable = false)
+    private String categoryName;
 
     // Relationships
+    @JsonIgnore
     @OneToMany(mappedBy = "menuCategory", cascade = CascadeType.ALL)
     private Set<FoodItem> foodItems;
 }

@@ -56,9 +56,9 @@ public class GlobalExceptionHandler {
         ErrorResponse error = new ErrorResponse();
         error.setTimestamp(LocalDateTime.now());
         error.setMessage(ex.getMessage());
-        error.setStatus(HttpStatus.BAD_REQUEST.value());
-        error.setError("Bad Request");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        error.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        error.setError("Internal Server Error");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Users,
@@ -9,11 +9,48 @@ import {
   CreditCard,
   ChevronRight,
 } from "lucide-react";
+import apiClient from "@/lib/apiClient";
 
 /**
  * Trang tổng quan Admin Dashboard
  */
 const AdminDashboard = () => {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalMerchants: 0,
+    totalOrders: 0,
+    totalRevenue: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await apiClient.get('/admin/stats');
+        if (response.data && response.data.success) {
+          setStats(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin stats", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const formatCurrency = (val: number) => {
+    if (val >= 1000000000) return (val / 1000000000).toFixed(1) + " Tỷ";
+    if (val >= 1000000) return (val / 1000000).toFixed(1) + " Triệu";
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+  };
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-64 bg-white rounded-3xl shadow-sm border border-gray-100 italic text-gray-400">
+      Đang tải dữ liệu hệ thống...
+    </div>
+  );
+
   return (
     <div className="space-y-8 font-sans">
       {/* Thống kê nhanh */}
@@ -29,7 +66,7 @@ const AdminDashboard = () => {
               Tổng Người Dùng
             </p>
             <h3 className="text-3xl font-black text-gray-900 mt-2 tracking-tight">
-              1,284
+              {stats.totalUsers.toLocaleString()}
             </h3>
           </div>
         </div>
@@ -45,7 +82,7 @@ const AdminDashboard = () => {
               Đối Tác Merchant
             </p>
             <h3 className="text-3xl font-black text-gray-900 mt-2 tracking-tight">
-              42
+              {stats.totalMerchants.toLocaleString()}
             </h3>
           </div>
         </div>
@@ -61,7 +98,7 @@ const AdminDashboard = () => {
               Đơn Hàng Toàn Sàn
             </p>
             <h3 className="text-3xl font-black text-gray-900 mt-2 tracking-tight">
-              56,204
+              {stats.totalOrders.toLocaleString()}
             </h3>
           </div>
         </div>
@@ -77,87 +114,34 @@ const AdminDashboard = () => {
               Doanh Thu Hệ Thống
             </p>
             <h3 className="text-3xl font-black text-gray-900 mt-2 tracking-tight">
-              12.8 Tỷ
+              {formatCurrency(stats.totalRevenue)}
             </h3>
           </div>
         </div>
       </div>
 
-      {/* Hoạt động gần đây */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Yêu cầu Merchant mới */}
-        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h4 className="text-xl font-black text-gray-900 tracking-tight">
-              Đăng Ký Merchant Mới
-            </h4>
-            <Link
-              href="/admin/merchant-requests"
-              className="text-[#ee4d2d] text-sm font-bold hover:underline"
-            >
-              Xem tất cả
-            </Link>
+      {/* Nút hành động nhanh */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <Link href="/admin/applications" className="group">
+          <div className="bg-[#ee4d2d] p-8 rounded-[40px] text-white flex justify-between items-center overflow-hidden relative shadow-xl shadow-red-100 transition-transform active:scale-95 cursor-pointer">
+            <div className="relative z-10">
+              <h4 className="text-2xl font-black mb-1">Duyệt Đơn Merchant</h4>
+              <p className="text-white/80 font-medium">Xử lý các hồ sơ đăng ký kinh doanh mới</p>
+            </div>
+            <ChevronRight className="h-8 w-8 relative z-10 opacity-50 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
+            <Store className="absolute right-[-20px] bottom-[-20px] h-40 w-40 text-black/5 z-0" />
           </div>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 group cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-500">
-                    R{i}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">
-                      Nhà hàng Hương Việt {i}
-                    </p>
-                    <p className="text-xs text-gray-400 font-medium">
-                      Đăng ký: 2 giờ trước
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-[#ee4d2d] transition-colors" />
-              </div>
-            ))}
+        </Link>
+        <Link href="/admin/customers" className="group">
+          <div className="bg-blue-600 p-8 rounded-[40px] text-white flex justify-between items-center overflow-hidden relative shadow-xl shadow-blue-100 transition-transform active:scale-95 cursor-pointer">
+            <div className="relative z-10">
+              <h4 className="text-2xl font-black mb-1">Quản lý Người dùng</h4>
+              <p className="text-white/80 font-medium">Xem danh sách và trạng thái tài khoản</p>
+            </div>
+            <ChevronRight className="h-8 w-8 relative z-10 opacity-50 group-hover:opacity-100 group-hover:translate-x-2 transition-all" />
+            <Users className="absolute right-[-20px] bottom-[-20px] h-40 w-40 text-black/5 z-0" />
           </div>
-        </div>
-
-        {/* Người dùng mới */}
-        <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-          <div className="flex justify-between items-center mb-6">
-            <h4 className="text-xl font-black text-gray-900 tracking-tight">
-              Người Dùng Mới
-            </h4>
-            <Link
-              href="/admin/customers"
-              className="text-[#ee4d2d] text-sm font-bold hover:underline"
-            >
-              Xem tất cả
-            </Link>
-          </div>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 group cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-orange-50 flex items-center justify-center font-bold text-[#ee4d2d]">
-                    U{i}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900">Khách hàng {i}</p>
-                    <p className="text-xs text-gray-400 font-medium">
-                      Tham gia: 3 giờ trước
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-[#ee4d2d] transition-colors" />
-              </div>
-            ))}
-          </div>
-        </div>
+        </Link>
       </div>
     </div>
   );

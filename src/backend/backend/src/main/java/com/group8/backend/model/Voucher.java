@@ -1,5 +1,6 @@
 package com.group8.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 // import java.math.BigDecimal;
@@ -25,10 +26,10 @@ public class Voucher {
     private Long discountValue;
 
     @Column(name = "MinOrderValue")
-    private Long minOrderValue = 0L;
+    private Long minOrderValue;
 
     @Column(name = "MaxUsage")
-    private Integer maxUsage = 1;
+    private Integer maxUsage;
 
     @Column(name = "StartDate")
     private LocalDateTime startDate;
@@ -37,8 +38,16 @@ public class Voucher {
     private LocalDateTime endDate;
 
     // Relationships
+    @JsonIgnore
     @OneToMany(mappedBy = "voucher")
     private Set<Order> orders;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "MerchantId", nullable = false)
+    private Merchant merchant;
+
+    @Column(name = "IsActive", nullable = false)
+    private Boolean isActive;
 
     @PrePersist
     public void generateId() {

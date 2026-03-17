@@ -6,13 +6,13 @@ import lombok.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "OrderDetails")
+@Table(name = "OrderItems")
 @Getter @Setter
 @NoArgsConstructor @AllArgsConstructor
 public class OrderDetail {
     @Id
-    @Column(name = "OrderDetailId", length = 10)
-    private String orderDetailId;
+    @Column(name = "OrderItemId", length = 10)
+    private String orderItemId;
 
     @ManyToOne
     @JoinColumn(name = "OrderId", nullable = false)
@@ -21,9 +21,6 @@ public class OrderDetail {
     @ManyToOne
     @JoinColumn(name = "FoodId", nullable = false)
     private FoodItem foodItem;
-
-    @Column(name = "FoodName", length = 100, nullable = false)
-    private String foodName;
 
     @Column(name = "Quantity", nullable = false)
     private Integer quantity;
@@ -37,8 +34,8 @@ public class OrderDetail {
 
     @PrePersist
     public void generateId() {
-        if (this.orderDetailId == null) {
-            this.orderDetailId = com.group8.backend.config.IDGenerator.generateID();
+        if (this.orderItemId == null) {
+            this.orderItemId = com.group8.backend.config.IDGenerator.generateID();
         }
     }
 }

@@ -37,6 +37,15 @@ public class CartController {
         return ResponseEntity.ok(resp);
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Map<String,Object>> getCartsByUser(@PathVariable String userId) {
+        java.util.List<CartResponseDTO> carts = cartService.getCartsByUser(userId);
+        Map<String,Object> resp = new HashMap<>();
+        resp.put("success", true);
+        resp.put("data", carts);
+        return ResponseEntity.ok(resp);
+    }
+
     @DeleteMapping("/item/{cartItemId}")
     public ResponseEntity<Map<String,Object>> removeCartItem(@PathVariable String cartItemId) {
         cartService.removeCartItem(cartItemId);

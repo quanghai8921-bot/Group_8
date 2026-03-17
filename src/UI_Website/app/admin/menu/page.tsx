@@ -13,55 +13,14 @@ import {
   Search,
   DollarSign,
 } from "lucide-react";
-import { getMockDishes, getMockShops } from "@/lib/apiClient";
-
-interface ToppingOption {
-  ToppingId: string;
-  ToppingName: string;
-  Price: number;
-}
-
-interface Category {
-  CategoryId: string;
-  CategoryName: string;
-}
-
-interface Dish {
-  FoodId: string;
-  CategoryId: string;
-  MerchantId: string;
-  FoodName: string;
-  OriginalPrice: number;
-  SalePrice: number;
-  FoodImage: string;
-  Descriptions: string;
-  FoodStatus: number; // 1: Available, 0: Unavailable
-  storeName?: string; // Optional helper
-  shopType?: string;
-  rating?: number;
-  toppingOptions?: ToppingOption[];
-}
-
-interface Shop {
-  MerchantId: string;
-  UserId: string;
-  StoreName: string;
-  StoreAddress: string;
-  OpenTime: string;
-  CloseTime: string;
-  ActiveStatus: number; // 1: Open, 0: Locked
-  ShopType: string;
-  ownerName?: string;
-  revenue: number;
-  totalOrders: number;
-}
+import { getAllFoods, getAllMerchants, Food, Merchant, toggleMerchantStatus, handleApiError } from "@/lib/apiClient";
 
 export default function MenuManagement() {
-  const [dishList, setDishList] = useState<Dish[]>([]);
-  const [shops, setShops] = useState<Shop[]>([]);
+  const [dishList, setDishList] = useState<any[]>([]);
+  const [shops, setShops] = useState<any[]>([]);
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMerchantId, setSelectedMerchantId] = useState<string>("M001");
+  const [selectedMerchantId, setSelectedMerchantId] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
   const searchParams = useSearchParams();
@@ -70,6 +29,8 @@ export default function MenuManagement() {
     const mId = searchParams.get("merchantId");
     if (mId) {
       setSelectedMerchantId(mId);
+    } else {
+      setSelectedMerchantId("all");
     }
   }, [searchParams]);
 
@@ -80,15 +41,39 @@ export default function MenuManagement() {
   const fetchDishesFromServer = async () => {
     setIsPageLoading(true);
     try {
-      const [fetchedShops, mockDishes] = await Promise.all([
-        getMockShops(),
-        getMockDishes()
+      const [fetchedShops, fetchedFoods] = await Promise.all([
+        getAllMerchants(),
+        getAllFoods()
       ]);
       
-      if (fetchedShops.length > 0) {
-        setShops(fetchedShops as any);
-      }
-      setDishList(mockDishes);
+      const mappedShops = fetchedShops.map(s => ({
+        MerchantId: s.merchantId,
+        UserId: s.userId,
+        StoreName: s.storeName,
+        StoreAddress: s.storeAddress,
+        OpenTime: s.openTime,
+        CloseTime: s.closeTime,
+        ActiveStatus: s.activeStatus ? 1 : 0,
+        ShopType: s.shopType,
+        revenue: 0, // Mock revenue as backend doesn't provide it yet
+        totalOrders: 0
+      }));
+
+      const mappedFoods = fetchedFoods.map(f => ({
+        FoodId: f.foodId,
+        CategoryId: f.categoryId,
+        MerchantId: f.merchantId,
+        FoodName: f.foodName,
+        OriginalPrice: f.originalPrice,
+        SalePrice: f.salePrice,
+        FoodImage: f.foodImage,
+        Descriptions: f.descriptions,
+        FoodStatus: f.foodStatus ? 1 : 0,
+        storeName: f.storeName
+      }));
+
+      setShops(mappedShops);
+      setDishList(mappedFoods);
     } catch (error) {
       console.error(error);
     } finally {
@@ -96,32 +81,38 @@ export default function MenuManagement() {
     }
   };
 
-  const toggleShopStatus = (merchantId: string) => {
-    setShops(
-      shops.map((shop) => {
-        if (shop.MerchantId === merchantId) {
-          const newStatus = shop.ActiveStatus === 1 ? 0 : 1;
-          setDishList(
-            dishList.map((dish) => {
-              if (dish.MerchantId === merchantId) {
-                return {
-                  ...dish,
-                  FoodStatus: newStatus,
-                };
-              }
-              return dish;
-            }),
-          );
-          return { ...shop, ActiveStatus: newStatus };
+  const toggleShopStatus = async (merchantId: string) => {
+    const shop = shops.find(s => s.MerchantId === merchantId);
+    if (!shop) return;
+    
+    const newStatus = shop.ActiveStatus === 1 ? false : true;
+    try {
+      await toggleMerchantStatus(merchantId, newStatus);
+      
+      setShops(shops.map(s => {
+        if (s.MerchantId === merchantId) {
+          return { ...s, ActiveStatus: newStatus ? 1 : 0 };
         }
-        return shop;
-      }),
-    );
+        return s;
+      }));
+
+      setDishList(dishList.map(d => {
+        if (d.MerchantId === merchantId) {
+          return { ...d, FoodStatus: newStatus ? 1 : 0 };
+        }
+        return d;
+      }));
+
+      alert("Cập nhật trạng thái thành công!");
+    } catch (error: any) {
+      const apiErr = handleApiError(error);
+      alert(apiErr.message);
+    }
   };
 
   const filteredDishes = dishList.filter((dish) => {
     const matchesSearch =
-      dish.FoodName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (dish.FoodName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (dish.storeName || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesMerchant =
       selectedMerchantId === "all" || dish.MerchantId === selectedMerchantId;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Ticket,
@@ -35,108 +35,115 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface Voucher {
-  id: string;
-  code: string;
-  type: "food" | "drink" | "shipping";
-  value: number;
-  minSpend: number;
-  usageLimit: number;
-  usedCount: number;
-  startDate: string;
-  endDate: string;
-  status: "active" | "expired" | "scheduled";
-}
-
-const INITIAL_VOUCHERS: Voucher[] = [
-  {
-    id: "1",
-    code: "WELCOME50",
-    type: "food",
-    value: 50000,
-    minSpend: 200000,
-    usageLimit: 100,
-    usedCount: 45,
-    startDate: "2024-03-01",
-    endDate: "2024-04-01",
-    status: "active",
-  },
-  {
-    id: "2",
-    code: "FREESHIP",
-    type: "shipping",
-    value: 15000,
-    minSpend: 100000,
-    usageLimit: 500,
-    usedCount: 120,
-    startDate: "2024-03-01",
-    endDate: "2024-05-01",
-    status: "active",
-  },
-];
+import { createVoucher, deleteVoucher, SimpleVoucher, handleApiError, getVouchersByMerchant, updateVoucher } from "@/lib/apiClient";
+import { useMerchant } from "@/hooks/useMerchant";
 
 export default function VoucherManagement() {
-  const [voucherList, setVoucherList] = useState<Voucher[]>(INITIAL_VOUCHERS);
+  const { merchantId, isLoading: isMerchantLoading, error: merchantError } = useMerchant();
+  const [voucherList, setVoucherList] = useState<SimpleVoucher[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
   const [isAddVoucherDialogOpen, setIsAddVoucherDialogOpen] = useState(false);
   const [activeEditingId, setActiveEditingId] = useState<string | null>(null);
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
-  const [newVoucherData, setNewVoucherData] = useState<Partial<Voucher>>({
-    type: "food",
+  const [newVoucherData, setNewVoucherData] = useState<Partial<SimpleVoucher>>({
+    voucherType: "food",
     startDate: new Date().toISOString().split("T")[0],
     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0],
   });
 
-  function handleCreateNewVoucher() {
-    const processedVoucher: Voucher = {
-      id: activeEditingId || Math.random().toString(36).substring(2, 11),
-      code: newVoucherData.code || "VOUCHER",
-      type: (newVoucherData.type as any) || "food",
-      value: Number(newVoucherData.value) || 0,
-      minSpend: Number(newVoucherData.minSpend) || 0,
-      usageLimit: Number(newVoucherData.usageLimit) || 0,
-      usedCount: newVoucherData.usedCount || 0,
-      startDate: newVoucherData.startDate || "",
-      endDate: newVoucherData.endDate || "",
-      status: (newVoucherData.status as any) || "active",
-    };
-
-    if (activeEditingId) {
-      setVoucherList(function (previousList) {
-        return previousList.map((v) =>
-          v.id === activeEditingId ? processedVoucher : v,
-        );
-      });
-    } else {
-      setVoucherList(function (previousList) {
-        return [processedVoucher, ...previousList];
-      });
+  useEffect(() => {
+    if (merchantId) {
+      fetchVouchers();
     }
-
-    setIsAddVoucherDialogOpen(false);
-    setActiveEditingId(null);
-    setNewVoucherData({
-      type: "food",
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-    });
+  }, [merchantId]);
+  
+  async function fetchVouchers() {
+    if (!merchantId) return;
+    setIsPageLoading(true);
+    try {
+      const data = await getVouchersByMerchant(merchantId);
+      setVoucherList(data || []);
+    } catch (error) {
+      console.error("Failed to fetch vouchers:", error);
+      setVoucherList([]);
+    } finally {
+      setIsPageLoading(false);
+    }
   }
 
-  function handleUpdateVoucherStatus(id: string, newStatus: string) {
-    setVoucherList(function (previousList) {
-      return previousList.map(function (voucher) {
-        if (voucher.id === id) {
-          return { ...voucher, status: newStatus as any };
-        }
-        return voucher;
+  async function handleCreateNewVoucher() {
+    try {
+      if (!merchantId) {
+        alert("Lỗi: Không tìm thấy ID cửa hàng.");
+        return;
+      }
+
+      const formattedVoucherData = {
+        ...newVoucherData,
+        // Only append T00:00:00/T23:59:59 if not already present
+        startDate: newVoucherData.startDate && !newVoucherData.startDate.includes("T") 
+          ? `${newVoucherData.startDate}T00:00:00` 
+          : newVoucherData.startDate,
+        endDate: newVoucherData.endDate && !newVoucherData.endDate.includes("T") 
+          ? `${newVoucherData.endDate}T23:59:59` 
+          : newVoucherData.endDate,
+      };
+
+      if (activeEditingId) {
+        // preserve existing isActive status from newVoucherData (which should have it if editing)
+        const updated = await updateVoucher(activeEditingId, formattedVoucherData);
+        setVoucherList(prev => prev.map(v => v.voucherId === activeEditingId ? updated : v));
+        alert("Cập nhật voucher thành công!");
+      } else {
+        const created = await createVoucher({
+          ...formattedVoucherData,
+          isActive: true, // Default to true on creation
+          merchant: { merchantId }
+        } as any);
+        setVoucherList(prev => [created, ...(prev || [])]);
+        alert("Thêm voucher thành công!");
+      }
+      setIsAddVoucherDialogOpen(false);
+      setActiveEditingId(null);
+      setNewVoucherData({
+        voucherType: "food",
+        isActive: true,
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
       });
-    });
+    } catch (error: any) {
+      console.error("Voucher error:", error);
+      const apiErr = await handleApiError(error);
+      alert("Lỗi khi lưu voucher: " + apiErr.message);
+    }
+  }
+
+  async function handleDeleteVoucher(id: string) {
+    if (!confirm("Bạn có chắc chắn muốn xóa voucher này?")) return;
+    try {
+      await deleteVoucher(id);
+      setVoucherList(prev => (prev || []).filter(v => v.voucherId !== id));
+      alert("Đã xóa voucher!");
+    } catch (error) {
+      alert("Lỗi khi xóa voucher");
+    }
+  }
+
+  async function handleUpdateVoucherStatus(id: string, currentIsActive: boolean) {
+    try {
+      const updated = await updateVoucher(id, { isActive: !currentIsActive });
+      setVoucherList(prev => prev.map(v => v.voucherId === id ? updated : v));
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert("Lỗi khi cập nhật trạng thái");
+    }
   }
 
   function formatPriceToVND(amount: number) {
@@ -158,8 +165,9 @@ export default function VoucherManagement() {
     }
   }
 
-  const totalPages = Math.ceil(voucherList.length / ITEMS_PER_PAGE);
-  const paginatedVouchers = voucherList.slice(
+  const effectiveVoucherList = voucherList || [];
+  const totalPages = Math.ceil(effectiveVoucherList.length / ITEMS_PER_PAGE);
+  const paginatedVouchers = effectiveVoucherList.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   );
@@ -186,7 +194,7 @@ export default function VoucherManagement() {
               onClick={() => {
                 setActiveEditingId(null);
                 setNewVoucherData({
-                  type: "food",
+                  voucherType: "food",
                   startDate: new Date().toISOString().split("T")[0],
                   endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
                     .toISOString()
@@ -219,11 +227,11 @@ export default function VoucherManagement() {
                   <Input
                     id="voucherCode"
                     placeholder="SUMMER2024"
-                    value={newVoucherData.code}
+                    value={newVoucherData.voucherCode || ""}
                     onChange={function (event) {
                       setNewVoucherData({
                         ...newVoucherData,
-                        code: event.target.value.toUpperCase(),
+                        voucherCode: event.target.value.toUpperCase(),
                       });
                     }}
                   />
@@ -231,11 +239,11 @@ export default function VoucherManagement() {
                 <div className="grid gap-2">
                   <Label htmlFor="voucherType">Loại Voucher</Label>
                   <Select
-                    value={newVoucherData.type}
+                    value={newVoucherData.voucherType}
                     onValueChange={function (selectedValue) {
                       setNewVoucherData({
                         ...newVoucherData,
-                        type: selectedValue as any,
+                        voucherType: selectedValue as any,
                       });
                     }}
                   >
@@ -257,13 +265,16 @@ export default function VoucherManagement() {
                   <Label htmlFor="discountValue">Giá trị giảm giá (VND)</Label>
                   <Input
                     id="discountValue"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="50000"
-                    value={newVoucherData.value}
+                    value={newVoucherData.discountValue || ""}
                     onChange={function (event) {
+                      const value = event.target.value;
+                      if (value !== "" && !/^\d+$/.test(value)) return;
                       setNewVoucherData({
                         ...newVoucherData,
-                        value: Number(event.target.value),
+                        discountValue: value === "" ? 0 : Number(value),
                       });
                     }}
                   />
@@ -274,13 +285,16 @@ export default function VoucherManagement() {
                   </Label>
                   <Input
                     id="minimumSpend"
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="100000"
-                    value={newVoucherData.minSpend}
+                    value={newVoucherData.minOrderValue || ""}
                     onChange={function (event) {
+                      const value = event.target.value;
+                      if (value !== "" && !/^\d+$/.test(value)) return;
                       setNewVoucherData({
                         ...newVoucherData,
-                        minSpend: Number(event.target.value),
+                        minOrderValue: value === "" ? 0 : Number(value),
                       });
                     }}
                   />
@@ -288,20 +302,25 @@ export default function VoucherManagement() {
               </div>
 
               {/* Usage Limit */}
-              <div className="grid grid-cols-1 gap-2">
-                <Label htmlFor="usageLimit">Tổng số lần sử dụng</Label>
-                <Input
-                  id="usageLimit"
-                  type="number"
-                  placeholder="500"
-                  value={newVoucherData.usageLimit}
-                  onChange={function (event) {
-                    setNewVoucherData({
-                      ...newVoucherData,
-                      usageLimit: Number(event.target.value),
-                    });
-                  }}
-                />
+              <div className="grid grid-cols-1 gap-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="usageLimit">Tổng số lần sử dụng</Label>
+                  <Input
+                    id="usageLimit"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="500"
+                    value={newVoucherData.maxUsage || ""}
+                    onChange={function (event) {
+                      const value = event.target.value;
+                      if (value !== "" && !/^\d+$/.test(value)) return;
+                      setNewVoucherData({
+                        ...newVoucherData,
+                        maxUsage: value === "" ? 0 : Number(value),
+                      });
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Date Range */}
@@ -311,7 +330,7 @@ export default function VoucherManagement() {
                   <Input
                     id="startDate"
                     type="date"
-                    value={newVoucherData.startDate}
+                    value={newVoucherData.startDate || ""}
                     onChange={function (event) {
                       setNewVoucherData({
                         ...newVoucherData,
@@ -325,7 +344,7 @@ export default function VoucherManagement() {
                   <Input
                     id="endDate"
                     type="date"
-                    value={newVoucherData.endDate}
+                    value={newVoucherData.endDate || ""}
                     onChange={function (event) {
                       setNewVoucherData({
                         ...newVoucherData,
@@ -342,7 +361,7 @@ export default function VoucherManagement() {
                 onClick={handleCreateNewVoucher}
                 className="bg-[#ee4d2d] hover:bg-[#d73211] text-white w-full"
               >
-                Tạo Voucher
+                {activeEditingId ? "Cập Nhật Voucher" : "Tạo Voucher"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -351,10 +370,12 @@ export default function VoucherManagement() {
 
       {/* Vouchers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {paginatedVouchers.map(function (voucher) {
+        {isPageLoading ? (
+          <div className="col-span-full py-20 text-center">Đang tải voucher...</div>
+        ) : paginatedVouchers.map(function (voucher) {
           return (
             <div
-              key={voucher.id}
+              key={voucher.voucherId}
               className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group hover:border-orange-200 transition-all duration-300"
             >
               <div className="p-6">
@@ -364,13 +385,14 @@ export default function VoucherManagement() {
                     <Ticket className="w-6 h-6" />
                   </div>
                   <div
-                    className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                      voucher.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-700"
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-all ${
+                      voucher.isActive
+                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                     }`}
+                    onClick={() => handleUpdateVoucherStatus(voucher.voucherId!, !!voucher.isActive)}
                   >
-                    {voucher.status.toUpperCase()}
+                    {voucher.isActive ? "ĐANG HOẠT ĐỘNG" : "NGƯNG HOẠT ĐỘNG"}
                   </div>
                 </div>
 
@@ -378,13 +400,13 @@ export default function VoucherManagement() {
                   {/* Voucher Code & Details */}
                   <div>
                     <h3 className="text-xl font-bold text-gray-900 tracking-tight">
-                      {voucher.code}
+                      {voucher.voucherCode}
                     </h3>
                     <p className="text-sm text-gray-400 font-medium mb-1">
-                      {getVoucherTypeDisplayName(voucher.type)}
+                      {getVoucherTypeDisplayName(voucher.voucherType)}
                     </p>
                     <p className="text-sm text-[#ee4d2d] font-bold">
-                      {formatPriceToVND(voucher.value)} OFF
+                      {formatPriceToVND(voucher.discountValue)} OFF
                     </p>
                   </div>
 
@@ -392,12 +414,12 @@ export default function VoucherManagement() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Tag className="w-4 h-4 text-gray-400" />
-                      <span>Min. {formatPriceToVND(voucher.minSpend)}</span>
+                      <span>Min. {formatPriceToVND(voucher.minOrderValue)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="w-4 h-4 text-gray-400" />
                       <span>
-                        {voucher.usedCount}/{voucher.usageLimit} Used
+                        0/{voucher.maxUsage} Used
                       </span>
                     </div>
                   </div>
@@ -417,7 +439,7 @@ export default function VoucherManagement() {
                         size="sm"
                         className="h-8 text-blue-500 border-blue-200 hover:bg-blue-50 hover:text-blue-600 rounded-lg flex items-center gap-1.5"
                         onClick={() => {
-                          setActiveEditingId(voucher.id);
+                          setActiveEditingId(voucher.voucherId!);
                           setNewVoucherData(voucher);
                           setIsAddVoucherDialogOpen(true);
                         }}
@@ -425,31 +447,6 @@ export default function VoucherManagement() {
                         <Edit2 className="w-3.5 h-3.5" />
                         <span className="text-xs font-semibold">Sửa</span>
                       </Button>
-
-                      <Select
-                        value={voucher.status}
-                        onValueChange={(val) =>
-                          handleUpdateVoucherStatus(voucher.id, val)
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-[130px] rounded-lg border-gray-200 text-xs font-semibold focus:ring-0">
-                          <SelectValue placeholder="Trạng thái" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem
-                            value="active"
-                            className="text-xs font-semibold text-green-700"
-                          >
-                            Hoạt động
-                          </SelectItem>
-                          <SelectItem
-                            value="expired"
-                            className="text-xs font-semibold text-gray-500"
-                          >
-                            Ngừng HĐ
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
                 </div>

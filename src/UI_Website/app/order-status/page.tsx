@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { getMockDrivers, Driver } from "@/lib/apiClient";
+import { getOrderById, updateOrderStatus, Order } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle2,
@@ -23,13 +23,13 @@ import {
   Zap,
 } from "lucide-react";
 
-type OrderStatus = "PENDING" | "PREPARING" | "SHIPPING" | "DELIVERED";
+type OrderStatusNum = 1 | 2 | 3 | 4;
 
 const STATUS_STEPS = [
-  { id: "PENDING", label: "Chờ xác nhận", icon: Clock },
-  { id: "PREPARING", label: "Đang chuẩn bị", icon: Package },
-  { id: "SHIPPING", label: "Đang giao", icon: Truck },
-  { id: "DELIVERED", label: "Đã nhận hàng", icon: CheckCircle },
+  { id: 1, label: "Chờ xác nhận", icon: Clock },
+  { id: 2, label: "Đang chuẩn bị", icon: Package },
+  { id: 3, label: "Đang giao", icon: Truck },
+  { id: 4, label: "Đã nhận hàng", icon: CheckCircle },
 ];
 
 const REVIEW_TYPES = [
@@ -41,13 +41,16 @@ const REVIEW_TYPES = [
 ];
 
 export default function OrderStatusPage() {
-  const [currentStatus, setCurrentStatus] = useState<OrderStatus>("PENDING");
-  const [orderId, setOrderId] = useState("");
+  const searchParams = useSearchParams();
+  const orderIdFromUrl = searchParams.get("id");
+  
+  const [order, setOrder] = useState<Order | null>(null);
+  const [currentStatus, setCurrentStatus] = useState<number>(1);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isReviewed, setIsReviewed] = useState(false);
-  const [driver, setDriver] = useState<Driver | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Review form state (Mapping to DB schema)
+  // Review form state
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -57,37 +60,44 @@ export default function OrderStatusPage() {
 
   const router = useRouter();
 
-  useEffect(() => {
-    // Generate a random order ID for demo
-    const randomDigits = Math.floor(100000 + Math.random() * 900000);
-    setOrderId("SHOPEEFOOD_" + randomDigits);
-
-    // Simulate progress
-    const timer1 = setTimeout(() => setCurrentStatus("PREPARING"), 4000);
-    const timer2 = setTimeout(() => setCurrentStatus("SHIPPING"), 10000);
-
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (currentStatus === "SHIPPING" && !driver) {
-      getMockDrivers().then((drivers) => {
-        if (drivers.length > 0) {
-          setDriver(drivers[0]);
-        }
-      });
+  const fetchOrderData = async () => {
+    if (!orderIdFromUrl) {
+      setIsLoading(false);
+      return;
     }
-  }, [currentStatus, driver]);
+    try {
+      const data = await getOrderById(orderIdFromUrl);
+      if (data) {
+        setOrder(data);
+        setCurrentStatus(data.orderStatus);
+      }
+    } catch (err) {
+      console.error("Error fetching order status:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrderData();
+    const interval = setInterval(fetchOrderData, 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
+  }, [orderIdFromUrl]);
 
   const getCurrentStepIndex = () => {
     return STATUS_STEPS.findIndex((step) => step.id === currentStatus);
   };
 
-  const handleConfirmReceipt = () => {
-    setCurrentStatus("DELIVERED");
+  const handleConfirmReceipt = async () => {
+    if (!orderIdFromUrl) return;
+    try {
+      const updated = await updateOrderStatus(orderIdFromUrl, 4);
+      setOrder(updated);
+      setCurrentStatus(4);
+      alert("Xác nhận đã nhận hàng thành công!");
+    } catch (err) {
+      alert("Không thể cập nhật trạng thái. Vui lòng thử lại.");
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,7 +118,7 @@ export default function OrderStatusPage() {
     // Final object mapping to database schema provided
     const reviewData = {
       ReviewId: "REV" + Math.floor(Math.random() * 99999),
-      OrderId: orderId,
+      OrderId: order?.orderId || orderIdFromUrl,
       Rating: rating,
       Comment: comment,
       ReviewType: reviewType,
@@ -121,6 +131,33 @@ export default function OrderStatusPage() {
     setIsReviewed(true);
     setIsReviewModalOpen(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
+        <div className="h-12 w-12 border-4 border-orange-100 border-t-[#ee4d2d] rounded-full animate-spin" />
+        <p className="text-sm font-black text-gray-400 uppercase tracking-widest animate-pulse">Đang tải trạng thái đơn hàng...</p>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-6">
+        <Navbar />
+        <div className="p-8 bg-white rounded-3xl shadow-xl border border-gray-100 text-center max-w-md">
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <X className="w-10 h-10" />
+          </div>
+          <h1 className="text-2xl font-black text-gray-900 mb-4 uppercase">Không tìm thấy đơn hàng</h1>
+          <p className="text-gray-500 font-bold mb-8 italic">Mã đơn hàng #{orderIdFromUrl} không tồn tại hoặc bạn không có quyền truy cập.</p>
+          <Button onClick={() => router.push("/orders")} className="w-full py-6 bg-[#ee4d2d] hover:bg-[#d73211] text-white font-bold rounded-2xl transition-all shadow-lg shadow-orange-100">
+            Quay lại danh sách đơn hàng
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -135,7 +172,7 @@ export default function OrderStatusPage() {
                 Theo dõi trạng thái
               </h1>
               <p className="text-orange-100 font-bold opacity-90 italic">
-                Mã đơn hàng: {orderId}
+                Mã đơn hàng: #{order.orderId}
               </p>
             </div>
             <div className="absolute top-0 right-0 p-8 hidden md:block opacity-20">
@@ -145,94 +182,103 @@ export default function OrderStatusPage() {
           </div>
 
           <div className="p-8">
-            {/* Stepper */}
-            <div className="relative flex justify-between items-start mb-16 px-4">
-              {/* Line connecting steps */}
-              <div className="absolute top-7 left-10 right-10 h-1 bg-gray-100 rounded-full -z-10">
-                <div
-                  className="h-full bg-green-500 transition-all duration-1000 ease-in-out rounded-full shadow-[0_0_10px_rgba(34,197,94,0.3)]"
-                  style={{
-                    width: `${(getCurrentStepIndex() / (STATUS_STEPS.length - 1)) * 100}%`,
-                  }}
-                ></div>
-              </div>
-
-              {STATUS_STEPS.map((step, index) => {
-                const Icon = step.icon;
-                const isActive = index <= getCurrentStepIndex();
-                const isCurrent = index === getCurrentStepIndex();
-
-                return (
+            {/* Stepper - Hide if cancelled */}
+            {currentStatus !== 0 && (
+              <div className="relative flex justify-between items-start mb-16 px-4">
+                {/* Line connecting steps */}
+                <div className="absolute top-7 left-10 right-10 h-1 bg-gray-100 rounded-full -z-10">
                   <div
-                    key={step.id}
-                    className="flex flex-col items-center group"
-                  >
+                    className="h-full bg-green-500 transition-all duration-1000 ease-in-out rounded-full shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+                    style={{
+                      width: `${(getCurrentStepIndex() / (STATUS_STEPS.length - 1)) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+
+                {STATUS_STEPS.map((step, index) => {
+                  const Icon = step.icon;
+                  const isActive = index <= getCurrentStepIndex();
+                  const isCurrent = index === getCurrentStepIndex();
+
+                  return (
                     <div
-                      className={`
-                                            w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 relative
-                                            ${isActive ? "bg-green-500 text-white shadow-lg shadow-green-100" : "bg-white text-gray-300 border-2 border-gray-100"}
-                                            ${isCurrent ? "scale-110 ring-4 ring-green-50" : ""}
-                                        `}
+                      key={step.id}
+                      className="flex flex-col items-center group"
                     >
-                      <Icon
-                        className={`w-7 h-7 ${isCurrent ? "animate-pulse" : ""}`}
-                      />
-                      {isActive &&
-                        !isCurrent &&
-                        index !== STATUS_STEPS.length - 1 && (
-                          <div className="absolute -top-1 -right-1 bg-white rounded-full">
-                            <CheckCircle2 className="w-5 h-5 text-green-500 fill-white" />
-                          </div>
-                        )}
-                    </div>
-                    <div className="mt-4 text-center">
-                      <p
-                        className={`text-xs font-black uppercase tracking-widest ${isActive ? "text-green-600" : "text-gray-400"}`}
+                      <div
+                        className={`
+                                              w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 relative
+                                              ${isActive ? "bg-green-500 text-white shadow-lg shadow-green-100" : "bg-white text-gray-300 border-2 border-gray-100"}
+                                              ${isCurrent ? "scale-110 ring-4 ring-green-50" : ""}
+                                          `}
                       >
-                        {step.label}
-                      </p>
+                        <Icon
+                          className={`w-7 h-7 ${isCurrent ? "animate-pulse" : ""}`}
+                        />
+                        {isActive &&
+                          !isCurrent &&
+                          index !== STATUS_STEPS.length - 1 && (
+                            <div className="absolute -top-1 -right-1 bg-white rounded-full">
+                              <CheckCircle2 className="w-5 h-5 text-green-500 fill-white" />
+                            </div>
+                          )}
+                      </div>
+                      <div className="mt-4 text-center">
+                        <p
+                          className={`text-xs font-black uppercase tracking-widest ${isActive ? "text-green-600" : "text-gray-400"}`}
+                        >
+                          {step.label}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Status Message Section */}
             <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 mb-8">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white rounded-xl shadow-sm border border-gray-100">
-                  {currentStatus === "PENDING" && (
+                  {currentStatus === 0 && (
+                    <X className="w-6 h-6 text-red-500" />
+                  )}
+                  {currentStatus === 1 && (
                     <Clock className="w-6 h-6 text-[#ee4d2d]" />
                   )}
-                  {currentStatus === "PREPARING" && (
+                  {currentStatus === 2 && (
                     <Package className="w-6 h-6 text-orange-500" />
                   )}
-                  {currentStatus === "SHIPPING" && (
+                  {currentStatus === 3 && (
                     <Truck className="w-6 h-6 text-blue-500" />
                   )}
-                  {currentStatus === "DELIVERED" && (
+                  {currentStatus === 4 && (
                     <CheckCircle className="w-6 h-6 text-green-500" />
                   )}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-black text-gray-900 text-lg">
-                    {currentStatus === "PENDING" &&
+                    {currentStatus === 0 &&
+                      "Đơn hàng của bạn đã bị hủy"}
+                    {currentStatus === 1 &&
                       "Hệ thống đang tiếp nhận đơn hàng của bạn"}
-                    {currentStatus === "PREPARING" &&
+                    {currentStatus === 2 &&
                       "Chủ quán đang chuẩn bị món ăn..."}
-                    {currentStatus === "SHIPPING" &&
+                    {currentStatus === 3 &&
                       "Tài xế đang giao đơn hàng đến bạn"}
-                    {currentStatus === "DELIVERED" &&
+                    {currentStatus === 4 &&
                       "Đơn hàng đã được giao thành công!"}
                   </h3>
                   <p className="text-gray-500 text-sm font-medium">
-                    {currentStatus === "PENDING" &&
+                    {currentStatus === 0 &&
+                      "Vui lòng đặt lại hoặc liên hệ hỗ trợ nếu cần thiết."}
+                    {currentStatus === 1 &&
                       "Vui lòng đợi trong giây lát."}
-                    {currentStatus === "PREPARING" &&
+                    {currentStatus === 2 &&
                       "Món ăn đang được nấu nướng tận tâm."}
-                    {currentStatus === "SHIPPING" &&
+                    {currentStatus === 3 &&
                       "Tài xế đang di chuyển, vui lòng để ý điện thoại."}
-                    {currentStatus === "DELIVERED" &&
+                    {currentStatus === 4 &&
                       "Chúc bạn ngon miệng với món ăn từ ShopeeFood!"}
                   </p>
                 </div>
@@ -247,7 +293,7 @@ export default function OrderStatusPage() {
                   Địa chỉ nhận hàng
                 </div>
                 <p className="font-bold text-gray-800">
-                  Số 1 Đại Cồ Việt, Hai Bà Trưng, Hà Nội
+                  {order.deliveryAddress || "Số 1 Đại Cồ Việt, Hai Bà Trưng, Hà Nội"}
                 </p>
               </div>
               <div className="p-6 border-2 border-dashed border-gray-100 rounded-2xl">
@@ -256,14 +302,14 @@ export default function OrderStatusPage() {
                   Thông tin liên hệ
                 </div>
                 <p className="font-bold text-gray-800">
-                  0987 654 321 - Ngô Thế Vinh
+                  {order.contactPhone || "0987 654 321"} - {order.customerName || "Khách hàng"}
                 </p>
               </div>
             </div>
 
             {/* Action Area */}
             <div className="flex flex-col gap-4">
-              {currentStatus === "SHIPPING" && (
+              {currentStatus === 3 && (
                 <Button
                   onClick={handleConfirmReceipt}
                   className="group w-full py-8 bg-red-600 hover:bg-green-600 text-white text-xl font-black rounded-2xl shadow-xl shadow-red-100 hover:shadow-green-100 transition-all hover:scale-[1.02] flex items-center justify-center gap-3 animate-bounce-subtle"
@@ -273,7 +319,7 @@ export default function OrderStatusPage() {
                 </Button>
               )}
 
-              {currentStatus === "DELIVERED" && (
+              {currentStatus === 4 && (
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Button
                     onClick={() => router.push("/")}
@@ -300,22 +346,19 @@ export default function OrderStatusPage() {
               <Button
                 variant="ghost"
                 onClick={() =>
-                  window.open(
-                    "https://www.facebook.com/vinh.nguyen.584493",
-                    "_blank",
-                  )
+                  router.push("/")
                 }
                 className="text-gray-400 hover:text-gray-600 font-bold flex items-center justify-center gap-2"
               >
-                Cần hỗ trợ liên hệ tổng đài
+                Tiếp tục mua hàng
                 <ChevronRight className="w-4 h-4" />
               </Button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-        
-    {/* Driver Info Panel */}
-    {(currentStatus === "SHIPPING" || currentStatus === "DELIVERED") && driver && (
+
+        {/* Driver Info Panel - Hide if cancelled */}
+        {currentStatus !== 0 && (currentStatus === 3 || currentStatus === 4) && order.driverName && (
           <div className="w-full lg:w-80 shrink-0 lg:sticky lg:top-8 animate-in fade-in slide-in-from-right-10 duration-700">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden text-center">
               <div className="bg-blue-600 p-6 text-white relative">
@@ -333,7 +376,7 @@ export default function OrderStatusPage() {
                     <Zap className="w-3 h-3 text-white fill-white" />
                   </div>
                 </div>
-                <h3 className="text-xl font-black text-gray-900 mb-1">{driver.FullName}</h3>
+                <h3 className="text-xl font-black text-gray-900 mb-1">{order.driverName}</h3>
                 <p className="text-gray-500 font-bold text-sm mb-6 flex items-center justify-center gap-1">
                   <ShieldCheck className="w-4 h-4 text-blue-500" />
                   Đối tác ShopeeFood
@@ -342,15 +385,15 @@ export default function OrderStatusPage() {
                 <div className="space-y-4 text-left">
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Số điện thoại</p>
-                    <p className="font-bold text-gray-800">{driver.PhoneNumber}</p>
+                    <p className="font-bold text-gray-800">{order.driverPhone}</p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Biển số xe</p>
-                    <p className="font-bold text-gray-800">{driver.LicensePlate}</p>
+                    <p className="font-bold text-gray-800">{order.licensePlate}</p>
                   </div>
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Loại xe</p>
-                    <p className="font-bold text-gray-800">{driver.VehicleType}</p>
+                    <p className="font-bold text-gray-800">{order.vehicleType}</p>
                   </div>
                 </div>
                 
@@ -375,7 +418,7 @@ export default function OrderStatusPage() {
                   Đánh giá đơn hàng
                 </h2>
                 <p className="text-orange-100 font-bold opacity-90 text-sm">
-                  Chia sẻ trải nghiệm của bạn về {orderId}
+                  Chia sẻ trải nghiệm của bạn về #{order.orderId}
                 </p>
               </div>
               <button

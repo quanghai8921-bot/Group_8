@@ -48,15 +48,14 @@ public class CartServiceImpl implements CartService {
         FoodItem food = foodItemRepository.findById(dto.getFoodId())
                 .orElseThrow(() -> new RuntimeException("Food item not found"));
 
-       if (!food.getFoodStatus()) {
-    throw new RuntimeException("Food item is out of stock");
+       if (food.getFoodStatus() == null || food.getFoodStatus() != 1) {
+    throw new RuntimeException("Food item is out of stock or discontinued");
 }
 
         // Get or create cart
         Cart cart = cartRepository.findByUser_UserIdAndMerchant_MerchantId(dto.getUserId(), dto.getMerchantId())
                 .orElseGet(() -> {
                     Cart c = new Cart();
-                    c.setCartId(generateId("CRT"));
                     c.setUser(user);
                     c.setMerchant(merchant);
                     c.setCreatedAt(LocalDateTime.now());
@@ -86,7 +85,6 @@ public class CartServiceImpl implements CartService {
             cartItemRepository.save(targetItem);
         } else {
             targetItem = new CartItem();
-            targetItem.setCartItemId(generateId("CI"));
             targetItem.setCart(cart);
             targetItem.setFoodItem(food);
             targetItem.setQuantity(dto.getQuantity());
@@ -98,7 +96,6 @@ public class CartServiceImpl implements CartService {
                 OptionTopping topping = optionToppingRepository.findById(tId)
                         .orElseThrow(() -> new RuntimeException("Topping not found: " + tId));
                 CartItemTopping ct = new CartItemTopping();
-                ct.setCartToppingId(generateId("CT"));
                 ct.setCartItem(targetItem);
                 ct.setOptionTopping(topping);
                 cartItemToppingRepository.save(ct);
@@ -114,9 +111,15 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartResponseDTO getCart(String userId, String merchantId) {
-        Cart cart = cartRepository.findByUser_UserIdAndMerchant_MerchantId(userId, merchantId)
-                .orElseThrow(() -> new RuntimeException("Cart not found"));
-        return convertToDTO(cart);
+        return cartRepository.findByUser_UserIdAndMerchant_MerchantId(userId, merchantId)
+                .map(this::convertToDTO)
+                .orElse(null);
+    }
+
+    @Override
+    public List<CartResponseDTO> getCartsByUser(String userId) {
+        List<Cart> carts = cartRepository.findByUser_UserId(userId);
+        return carts.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -148,8 +151,8 @@ public class CartServiceImpl implements CartService {
             BigDecimal toppingSum = BigDecimal.ZERO;
             if (ci.getCartItemToppings() != null) {
                 for (CartItemTopping ct : ci.getCartItemToppings()) {
-                    if (ct.getOptionTopping() != null && ct.getOptionTopping().getSurcharge() != null)
-                        toppingSum = toppingSum.add(BigDecimal.valueOf(ct.getOptionTopping().getSurcharge()));
+                    if (ct.getOptionTopping() != null && ct.getOptionTopping().getPrice() != null)
+                        toppingSum = toppingSum.add(BigDecimal.valueOf(ct.getOptionTopping().getPrice()));
                 }
             }
             BigDecimal itemTotal = base.add(toppingSum).multiply(BigDecimal.valueOf(ci.getQuantity()));
@@ -170,6 +173,7 @@ public class CartServiceImpl implements CartService {
             ciDto.setCartItemId(ci.getCartItemId());
             ciDto.setFoodId(ci.getFoodItem().getFoodId());
             ciDto.setFoodName(ci.getFoodItem().getFoodName());
+            ciDto.setFoodImage(ci.getFoodItem().getFoodImage());
             ciDto.setQuantity(ci.getQuantity());
             ciDto.setNote(ci.getNote());
             BigDecimal base = ci.getFoodItem().getSalePrice() != null ? BigDecimal.valueOf(ci.getFoodItem().getSalePrice()) : BigDecimal.valueOf(ci.getFoodItem().getOriginalPrice());
@@ -180,11 +184,11 @@ public class CartServiceImpl implements CartService {
                 for (CartItemTopping ct : ci.getCartItemToppings()) {
                     CartItemToppingDTO tDto = new CartItemToppingDTO();
                     tDto.setToppingId(ct.getOptionTopping().getToppingId());
-                    tDto.setNameOption(ct.getOptionTopping().getNameOption());
-                    tDto.setSurcharge(ct.getOptionTopping().getSurcharge());
+                    tDto.setToppingName(ct.getOptionTopping().getToppingName());
+                    tDto.setPrice(ct.getOptionTopping().getPrice());
                     tDtos.add(tDto);
-                    if (ct.getOptionTopping().getSurcharge() != null)
-                        toppingSum = toppingSum.add(BigDecimal.valueOf(ct.getOptionTopping().getSurcharge()));
+                    if (ct.getOptionTopping().getPrice() != null)
+                        toppingSum = toppingSum.add(BigDecimal.valueOf(ct.getOptionTopping().getPrice()));
                 }
             }
             ciDto.setToppings(tDtos);
@@ -194,9 +198,5 @@ public class CartServiceImpl implements CartService {
         }).collect(Collectors.toList());
         dto.setItems(items);
         return dto;
-    }
-
-    private String generateId(String prefix) {
-        return prefix + UUID.randomUUID().toString().substring(0,8).toUpperCase();
     }
 }
