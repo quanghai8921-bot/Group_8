@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, String> {
     List<Review> findByOrder_OrderId(String orderId);
+    List<Review> findByOrder_Merchant_MerchantId(String merchantId);
 }

@@ -31,6 +31,16 @@ public class Review {
     @Column(name = "MediaUrl", length = 255)
     private String mediaUrl;
 
-    @Column(name = "CreatedAt", insertable = false, updatable = false)
+    @Column(name = "CreatedAt", updatable = false)
     private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.reviewId == null) {
+            this.reviewId = com.group8.backend.config.IDGenerator.generateID();
+        }
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+    }
 }

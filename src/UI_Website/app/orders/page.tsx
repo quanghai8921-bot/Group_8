@@ -159,7 +159,7 @@ export default function OrdersPage() {
                           Sản phẩm
                         </p>
                         <p className="font-bold text-gray-700 truncate max-w-[150px]">
-                          {order.orderItemsSummary || "Đang cập nhật..."}
+                          {order.orderItemsSummary || ""}
                         </p>
                       </div>
                     </div>

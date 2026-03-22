@@ -109,27 +109,34 @@ export default function OrderStatusPage() {
     }
   };
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (rating === 0) {
       alert("Vui lòng chọn mức độ đánh giá sao nhé!");
       return;
     }
 
-    // Final object mapping to database schema provided
-    const reviewData = {
-      ReviewId: "REV" + Math.floor(Math.random() * 99999),
-      OrderId: order?.orderId || orderIdFromUrl,
-      Rating: rating,
-      Comment: comment,
-      ReviewType: reviewType,
-      MediaUrl: mediaFile ? mediaFile.name : null,
-      CreatedAt: new Date().toISOString(),
-    };
+    try {
+      // Mapping frontend state to backend ReviewDTO
+      const reviewData = {
+        orderId: order?.orderId || orderIdFromUrl,
+        rating: rating,
+        comment: comment,
+        reviewType: reviewType,
+        mediaUrl: mediaFile ? mediaFile.name : null, // Simplification for now, as file upload is not fully implemented
+      };
 
-    console.log("Submitting Review to DB schema logic:", reviewData);
-    alert("Cảm ơn bạn đã gửi đánh giá đơn hàng!");
-    setIsReviewed(true);
-    setIsReviewModalOpen(false);
+      console.log("Submitting Review to Backend:", reviewData);
+      
+      const { createReview } = await import("@/lib/apiClient");
+      await createReview(reviewData);
+
+      alert("Cảm ơn bạn đã gửi đánh giá đơn hàng!");
+      setIsReviewed(true);
+      setIsReviewModalOpen(false);
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      alert("Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại sau.");
+    }
   };
 
   if (isLoading) {

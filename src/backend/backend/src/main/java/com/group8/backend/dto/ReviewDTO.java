@@ -13,4 +13,6 @@ public class ReviewDTO {
     private int rating;
 
     private String comment;
+    private String reviewType;
+    private String mediaUrl;
 }

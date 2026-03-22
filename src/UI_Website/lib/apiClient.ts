@@ -325,6 +325,11 @@ export const getMerchantReviews = async (merchantId: string): Promise<Review[]> 
   return response.data.data;
 };
 
+export const createReview = async (reviewData: any): Promise<Review> => {
+  const response = await apiClient.post<ApiResponse<Review>>('/reviews', reviewData);
+  return response.data.data;
+};
+
 // Order APIs
 
 // Voucher APIs

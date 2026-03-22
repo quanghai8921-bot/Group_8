@@ -1,5 +1,6 @@
 package com.group8.backend.controller;
 
+import com.group8.backend.dto.ReviewDTO;
 import com.group8.backend.model.Review;
 import com.group8.backend.service.ReviewService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +36,9 @@ public class ReviewController {
     }
 
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createReview(@RequestBody Review review) {
+    public ResponseEntity<Map<String, Object>> createReview(@RequestBody ReviewDTO reviewDTO) {
         try {
-            Review created = reviewService.createReview(review);
+            Review created = reviewService.createReview(reviewDTO);
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("data", created);
